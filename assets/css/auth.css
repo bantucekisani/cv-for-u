@@ -1,0 +1,135 @@
+.auth-body {
+  min-height: 100vh;
+  background: #f4f6fb;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.auth-card {
+  background: #fff;
+  width: 100%;
+  max-width: 420px;
+  padding: 30px;
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+}
+
+.auth-card h1 {
+  margin-bottom: 6px;
+}
+
+.auth-sub {
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 20px;
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  font-size: 14px;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #2563eb;
+}
+
+.primary-btn {
+  width: 100%;
+  background: #2563eb;
+  color: white;
+  border: none;
+  padding: 12px;
+  border-radius: 10px;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.primary-btn:hover {
+  background: #1e4ed8;
+}
+
+.auth-footer {
+  text-align: center;
+  margin-top: 18px;
+  font-size: 14px;
+}
+.auth-body {
+  background: #f3f4f6;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.auth-container {
+  background: #ffffff;
+  padding: 35px 40px;
+  border-radius: 14px;
+  max-width: 380px;
+  width: 100%;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.07);
+}
+
+.auth-container h1 {
+  margin-bottom: 6px;
+}
+
+.auth-btn {
+  width: 100%;
+  background: #2563eb;
+  color: #fff;
+  padding: 12px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+.auth-body {
+  display: grid;
+  grid-template-columns: 1fr 420px;
+  align-items: center;
+  padding: 40px;
+}
+
+@media (max-width: 900px) {
+  .auth-body {
+    grid-template-columns: 1fr;
+  }
+}
+.auth-alt {
+  margin-top: 14px;
+  text-align: center;
+  font-size: 14px;
+}
+
+.auth-alt p {
+  margin: 0;
+  color: #555;
+}
+
+.signup-link {
+  color: #144f9b;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.signup-link:hover {
+  text-decoration: underline;
+}

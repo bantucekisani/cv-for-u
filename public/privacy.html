@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Privacy Policy – CV for U</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Privacy Policy for CV for U in accordance with the Protection of Personal Information Act (POPIA) of South Africa.">
+  <link rel="stylesheet" href="css/cv.css">
+</head>
+
+<body class="landing-body">
+
+<header class="topbar">
+  <div class="topbar-left">
+    <img src="images/logo.png" class="logo" alt="CV for U logo">
+    <span class="app-name"></span>
+  </div>
+
+  <!-- MOBILE MENU BUTTON -->
+  <button class="mobile-menu-btn" id="menuBtn" aria-label="Menu">☰</button>
+
+  <!-- NAVIGATION -->
+  <nav class="topbar-right" id="mobileMenu">
+    <a href="index.html" class="top-link">Home</a>
+    <a href="pricing.html" class="top-link">Pricing</a>
+        <a href="help.html" class="top-link">Help</a>
+    <a href="login.html" class="top-link">Login</a>
+    <a href="signup.html" class="primary-btn small">Sign Up</a>
+  </nav>
+</header>
+
+
+<main class="legal-page">
+  <h1>Privacy Policy</h1>
+
+  <p><strong>Effective Date:</strong> 1 January 2026</p>
+
+  <p>
+    CV for U respects your privacy and is committed to protecting your personal
+    information in accordance with the Protection of Personal Information Act
+    (POPIA) of the Republic of South Africa.
+  </p>
+
+  <h2>1. Information We Collect</h2>
+  <p>We may collect the following information:</p>
+  <ul>
+    <li>Name and email address</li>
+    <li>CV content you enter, including work history, education, skills, and profile photo</li>
+    <li>Account login and usage information</li>
+    <li>Device and browser information</li>
+    <li>Local storage data used to save progress</li>
+  </ul>
+
+  <h2>2. How We Use Your Information</h2>
+  <p>Your information is used to:</p>
+  <ul>
+    <li>Create, save, and manage your CVs and cover letters</li>
+    <li>Provide AI-assisted CV and cover letter generation</li>
+    <li>Authenticate users and prevent abuse</li>
+    <li>Process payments and unlock digital services</li>
+    <li>Improve platform performance and user experience</li>
+  </ul>
+
+  <h2>3. Payments</h2>
+  <p>
+    All payments are processed securely by trusted third-party payment providers.
+    CV for U does not store or process your card, banking, or airtime details.
+  </p>
+
+  <h2>4. Third-Party Services</h2>
+  <p>
+    We may use third-party service providers for hosting, payments, analytics,
+    and AI processing. These providers only receive information necessary to
+    perform their services and are contractually required to protect your data.
+  </p>
+
+  <h2>5. Data Retention</h2>
+  <p>
+    We retain personal information only for as long as necessary to provide
+    our services or as required by law. Users may request deletion of their
+    account and associated data at any time.
+  </p>
+
+  <h2>6. Your Rights</h2>
+  <p>
+    In terms of POPIA, you have the right to:
+  </p>
+  <ul>
+    <li>Access your personal information</li>
+    <li>Request correction or deletion of your data</li>
+    <li>Withdraw consent where applicable</li>
+    <li>Lodge a complaint with the Information Regulator of South Africa</li>
+  </ul>
+
+  <h2>7. Children’s Information</h2>
+  <p>
+    CV for U is not intended for use by children under the age of 16.
+    We do not knowingly collect personal information from minors.
+  </p>
+
+  <h2>8. Data Security</h2>
+  <p>
+    We implement reasonable technical and organisational measures to protect
+    personal information against loss, misuse, unauthorised access, or disclosure.
+  </p>
+
+  <h2>9. Changes to This Policy</h2>
+  <p>
+    We may update this Privacy Policy from time to time. Any changes will be
+    posted on this page with an updated effective date.
+  </p>
+
+  <h2>10. Contact Information</h2>
+  <p>
+    If you have any questions about this Privacy Policy or how your information
+    is handled, please contact us at:
+  </p>
+  <p>
+    <strong>Email:</strong> support@cvforu.co.za
+  </p>
+</main>
+
+<!-- ================= FOOTER ================= -->
+<footer class="landing-footer">
+  <p>© 2026 CV for U — Made with ❤️ in South Africa</p>
+
+  <div class="footer-links">
+    <a href="privacy.html">Privacy Policy</a>
+    <a href="terms.html">Terms of Service</a>
+    <a href="help.html">Support</a>
+  </div>
+</footer>
+
+</body>
+<script>
+  const menuBtn = document.getElementById("menuBtn");
+  const mobileMenu = document.getElementById("mobileMenu");
+
+  menuBtn?.addEventListener("click", () => {
+    mobileMenu.classList.toggle("show");
+    menuBtn.textContent =
+      mobileMenu.classList.contains("show") ? "✕" : "☰";
+  });
+
+  mobileMenu?.querySelectorAll("a").forEach(link => {
+    link.addEventListener("click", () => {
+      mobileMenu.classList.remove("show");
+      menuBtn.textContent = "☰";
+    });
+  });
+</script>
+
+</html>

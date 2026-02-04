@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+
+  <title>Help & Support – CV for U</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta
+    name="description"
+    content="Get help with CV for U. Find answers about CV downloads, payments, AI features, and how to contact support."
+  >
+
+  <link rel="stylesheet" href="css/cv.css">
+</head>
+
+<body class="landing-body">
+
+<!-- ================= TOP BAR ================= -->
+<header class="topbar">
+  <div class="topbar-left">
+    <img src="images/logo.png" class="logo" alt="CV for U logo">
+    <span class="app-name"></span>
+  </div>
+
+  <!-- MOBILE MENU BUTTON -->
+  <button class="mobile-menu-btn" id="menuBtn" aria-label="Menu">☰</button>
+
+  <!-- NAVIGATION -->
+  <nav class="topbar-right" id="mobileMenu">
+    <a href="index.html" class="top-link">Home</a>
+    <a href="pricing.html" class="top-link">Pricing</a>
+        <a href="help.html" class="top-link">Help</a>
+    <a href="login.html" class="top-link">Login</a>
+    <a href="signup.html" class="primary-btn small">Sign Up</a>
+  </nav>
+</header>
+
+<!-- ================= HELP CONTENT ================= -->
+<main class="legal-page">
+  <h1>Help & Support</h1>
+
+  <p class="legal-intro">
+    We’re here to help you create a professional CV quickly and easily.
+    Below are answers to the most common questions.
+  </p>
+
+  <!-- ================= FAQ ================= -->
+  <h2>Frequently Asked Questions</h2>
+
+  <div class="faq-item">
+    <p>
+      <strong>Can I create a CV for free?</strong><br>
+      Yes. You can create, edit, and preview your CV for free.
+      Payment is required only when you want to download.
+    </p>
+  </div>
+
+  <div class="faq-item">
+    <p>
+      <strong>What do I get when I pay?</strong><br>
+      A once-off payment unlocks your CV for download as PDF and Word,
+      including <strong>4 CV downloads</strong> and
+      <strong>1 free AI-generated cover letter</strong>.
+    </p>
+  </div>
+
+  <div class="faq-item">
+    <p>
+      <strong>Can I download my CV more than once?</strong><br>
+      Yes. Each unlock includes multiple downloads, which you can use anytime.
+    </p>
+  </div>
+
+  <div class="faq-item">
+    <p>
+      <strong>Is my personal information safe?</strong><br>
+      Yes. Your data is stored securely and payments are processed through
+      <strong>PayFast</strong>. We do not store your card details.
+    </p>
+  </div>
+
+  <div class="faq-item">
+    <p>
+      <strong>Do you offer refunds?</strong><br>
+      Due to the digital nature of the service, refunds are not guaranteed once
+      a CV or cover letter has been generated or downloaded.
+    </p>
+  </div>
+
+  <div class="faq-item">
+    <p>
+      <strong>Do I need a subscription?</strong><br>
+      No. CV for U is <strong>pay-as-you-go</strong>.
+      There are no monthly or hidden fees.
+    </p>
+  </div>
+
+  <!-- ================= CONTACT ================= -->
+  <h2>Contact Support</h2>
+
+  <p>
+    If you need help or have questions, you can contact us anytime:
+  </p>
+
+  <p>
+    📧 <strong>Email:</strong><br>
+    <a href="mailto:support@cvforu.co.za">support@cvforu.co.za</a>
+  </p>
+
+  <p class="support-note">
+    We usually respond within 24 hours.
+  </p>
+</main>
+
+<!-- ================= FOOTER ================= -->
+<footer class="landing-footer">
+  <p>© 2026 CV for U — Made with ❤️ in South Africa</p>
+
+  <div class="footer-links">
+    <a href="privacy.html">Privacy Policy</a>
+    <a href="terms.html">Terms of Service</a>
+    <a href="help.html">Support</a>
+  </div>
+</footer>
+
+<!-- ================= SCRIPTS ================= -->
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+
+<script>
+  const menuBtn = document.getElementById("menuBtn");
+  const mobileMenu = document.getElementById("mobileMenu");
+
+  menuBtn?.addEventListener("click", () => {
+    mobileMenu.classList.toggle("show");
+    menuBtn.textContent =
+      mobileMenu.classList.contains("show") ? "✕" : "☰";
+  });
+
+  mobileMenu?.querySelectorAll("a").forEach(link => {
+    link.addEventListener("click", () => {
+      mobileMenu.classList.remove("show");
+      menuBtn.textContent = "☰";
+    });
+  });
+</script>
+
+</body>
+</html>

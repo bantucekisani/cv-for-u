@@ -1,0 +1,174 @@
+/* =========================================================
+   DASHBOARD LAYOUT
+========================================================= */
+
+.dashboard-body {
+  background: #f5f7fb;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  margin: 0;
+}
+
+/* TOPBAR REUSE STYLE */
+.topbar {
+  background: #ffffff;
+  padding: 12px 26px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.top-link {
+  color: #2563eb;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.primary-outline {
+  padding: 8px 14px;
+  border: 2px solid #2563eb;
+  border-radius: 8px;
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.primary-outline:hover {
+  background: #2563eb;
+  color: #fff;
+}
+
+/* =========================================================
+   MAIN CONTAINER
+========================================================= */
+
+.dashboard-container {
+  max-width: 1100px;
+  margin: 40px auto;
+  padding: 0 20px;
+}
+
+.dash-title {
+  font-size: 2rem;
+  margin-bottom: 6px;
+  color: #1e293b;
+}
+
+.dash-sub {
+  color: #64748b;
+  margin-bottom: 25px;
+}
+
+/* =========================================================
+   CREATE BUTTON
+========================================================= */
+
+#createNewBtn {
+  background: #2563eb;
+  color: white;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  font-weight: 600;
+  margin-bottom: 25px;
+}
+
+#createNewBtn:hover {
+  opacity: 0.9;
+}
+
+/* =========================================================
+   CV CARD GRID
+========================================================= */
+
+.cv-list-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 20px;
+}
+
+/* =========================================================
+   CV CARD STYLING
+========================================================= */
+
+.cv-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 18px;
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.cv-card h3 {
+  margin: 0 0 6px;
+  font-size: 1.1rem;
+  color: #0f172a;
+}
+
+.cv-card p {
+  margin: 0 0 10px;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+/* Buttons inside cards */
+.cv-card .small-btn {
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  padding: 8px 14px;
+  font-size: 0.84rem;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-top: 8px;
+}
+
+.cv-card .small-btn:hover {
+  opacity: 0.92;
+}
+
+.cv-card .danger-small {
+  background: #dc2626;
+}
+
+.cv-card .danger-small:hover {
+  opacity: 0.92;
+}
+
+/* Empty message */
+.empty-msg {
+  text-align: center;
+  color: #6b7280;
+  margin-top: 30px;
+  font-style: italic;
+}
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 768px) {
+  .dashboard-container {
+    margin-top: 20px;
+  }
+
+  .dash-title {
+    font-size: 1.6rem;
+  }
+}

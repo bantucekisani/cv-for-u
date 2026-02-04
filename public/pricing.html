@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Pricing – </title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="css/cv.css">
+</head>
+
+<body class="landing-body">
+
+  <!-- ================= TOP BAR ================= -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <img src="images/logo.png" class="logo" alt="CV for U logo">
+      <span class="app-name"></span>
+    </div>
+
+    <!-- MOBILE MENU BUTTON -->
+    <button class="mobile-menu-btn" id="menuBtn" aria-label="Menu">
+      ☰
+    </button>
+
+    <!-- NAVIGATION -->
+    <nav class="topbar-right" id="mobileMenu">
+      <a href="index.html" class="top-link">Home</a>
+       <a href="pricing.html" class="top-link">Pricing</a>
+      <a href="help.html" class="top-link">Help</a>
+      <a href="login.html" class="top-link">Login</a>
+      <a href="signup.html" class="primary-btn small">Sign Up</a>
+    </nav>
+  </header>
+
+  <!-- ================= PRICING ================= -->
+  <section class="pricing">
+    <h1 class="pricing-title">Simple, pay-as-you-go pricing</h1>
+    <p class="pricing-sub">
+      Create your CV for free. Pay only when you’re ready to download.
+    </p>
+
+    <div class="pricing-grid">
+
+      <!-- FREE PLAN -->
+      <div class="pricing-card">
+        <h2>Free</h2>
+        <p class="price">R0</p>
+        <ul>
+          <li>Create unlimited CVs</li>
+          <li>All templates</li>
+          <li>Live preview</li>
+           <li>AI Full CV Assistance</li>
+          <li>AI suggestions</li>
+        </ul>
+        <a href="signup.html" class="primary-btn">Start for Free</a>
+      </div>
+
+      <!-- PAID PLAN -->
+      <div class="pricing-card popular">
+        <div class="tag">Most Popular</div>
+        <h2>Unlock CV</h2>
+        <p class="price">R29 for 4  CV downoads </p>
+        <ul>
+          <li>Download PDF & Word</li>
+          <li>1 free AI cover letter</li>
+          <li>No subscriptions</li>
+           <li>Online CV storage</li>
+           <li>Basic CV templates</li>
+        </ul>
+        <a href="login.html" class="primary-btn">Create & Unlock</a>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ================= FOOTER ================= -->
+<footer class="landing-footer">
+  <p>© 2026 CV for U — Made with ❤️ in South Africa</p>
+
+  <div class="footer-links">
+    <a href="privacy.html">Privacy Policy</a>
+    <a href="terms.html">Terms of Service</a>
+    <a href="help.html">Support</a>
+  </div>
+</footer>
+
+  <!-- ================= SCRIPTS ================= -->
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+
+  <!-- MOBILE MENU TOGGLE -->
+  <script>
+    const menuBtn = document.getElementById("menuBtn");
+    const mobileMenu = document.getElementById("mobileMenu");
+
+    menuBtn?.addEventListener("click", () => {
+      mobileMenu.classList.toggle("show");
+      menuBtn.textContent =
+        mobileMenu.classList.contains("show") ? "✕" : "☰";
+    });
+
+    // Close menu after clicking a link
+    mobileMenu?.querySelectorAll("a").forEach(link => {
+      link.addEventListener("click", () => {
+        mobileMenu.classList.remove("show");
+        menuBtn.textContent = "☰";
+      });
+    });
+  </script>
+
+</body>
+</html>

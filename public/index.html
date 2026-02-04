@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title> – Online CV Maker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Main Styles -->
+  <link rel="stylesheet" href="css/cv.css" />
+
+  <!-- Mobile Header Fix -->
+  <style>
+    /* ================= MOBILE NAV ================= */
+    .mobile-menu-btn {
+      display: none;
+      font-size: 22px;
+      background: none;
+      border: none;
+      cursor: pointer;
+    }
+
+    @media (max-width: 768px) {
+      .topbar {
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .topbar-left {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .topbar-right {
+        display: none;
+        width: 100%;
+        flex-direction: column;
+        gap: 10px;
+        margin-top: 10px;
+      }
+
+      .topbar-right.show {
+        display: flex;
+      }
+
+      .topbar-right a {
+        text-align: center;
+        padding: 10px;
+      }
+
+      .mobile-menu-btn {
+        display: inline-block;
+      }
+
+      /* HERO */
+      .hero {
+        flex-direction: column;
+        padding: 32px 16px;
+      }
+
+      .hero h1 {
+        font-size: 32px;
+        line-height: 1.2;
+      }
+
+      .hero-preview-card {
+        width: 100%;
+        margin-top: 20px;
+      }
+
+      /* GRIDS STACK */
+      .cv-examples-grid,
+      .testimonials-grid,
+      .hiw-steps {
+        grid-template-columns: 1fr !important;
+      }
+    }
+  </style>
+</head>
+
+<body class="landing-body">
+
+<!-- ================= TOP BAR ================= -->
+<header class="topbar">
+  <div class="topbar-left">
+    <div class="brand">
+      <img src="images/logo.png" class="logo" alt="CV for U logo" />
+      <span class="app-name"></span>
+    </div>
+
+    <button class="mobile-menu-btn" id="menuBtn" aria-label="Menu">
+      ☰
+    </button>
+  </div>
+
+  <nav class="topbar-right" id="mobileMenu">
+     <a href="index.html" class="top-link">Home</a>
+    <a href="pricing.html" class="top-link">Pricing</a>
+    <a href="help.html" class="top-link">Help</a>
+    <a href="login.html" class="top-link">Login</a>
+    <a href="signup.html" class="primary-btn small">Sign Up</a>
+  </nav>
+</header>
+
+
+
+<!-- ================= HERO ================= -->
+<section class="hero">
+  <div class="hero-text">
+    <p class="hero-kicker">Fast. Easy. Effective.</p>
+
+    <h1>Create a job-winning CV in minutes.</h1>
+
+    <p class="hero-sub">
+      Build your professional CV with modern templates, AI-powered writing help,
+      and live preview. No design skills needed.
+    </p>
+
+    <div class="hero-actions">
+      <button class="primary-btn" id="createCvBtn">Create new CV</button>
+    </div>
+
+    <div class="ai-badge">🤖 AI-assisted CV builder included</div>
+
+    <p class="hero-small">
+      Create your CV for free · Download when ready (only <strong>R40</strong>)
+      for 4 CV downloads & 1 free AI cover letter
+    </p>
+
+    <div class="trust-row">
+      <span class="trust-label">Perfect for:</span>
+      <span class="trust-pill">Students</span>
+      <span class="trust-pill">Job seekers</span>
+      <span class="trust-pill">Professionals</span>
+    </div>
+  </div>
+
+  <!-- ===== MINI PREVIEW ===== -->
+  <div class="hero-preview-card animate-preview">
+    <h3>Live preview</h3>
+
+    <div class="mini-cv">
+      <div class="mini-cv-sidebar"></div>
+      <div class="mini-cv-content">
+        <div class="mini-cv-header-line"></div>
+        <div class="mini-cv-line"></div>
+        <div class="mini-cv-line short"></div>
+      </div>
+    </div>
+
+    <p class="mini-caption">Your CV updates instantly as you type.</p>
+  </div>
+</section>
+
+<!-- ================= CV EXAMPLES ================= -->
+<section class="cv-examples">
+  <h2 class="examples-title">Popular CV examples</h2>
+  <p class="examples-sub">See what your CV could look like</p>
+
+  <div class="cv-examples-grid">
+    <div class="cv-example-card">
+      <span class="cv-badge popular">⭐ Popular</span>
+      <div class="cv-paper">
+        <h3>Nomvula Dlamini</h3>
+        <p class="cv-role">Administrative Assistant</p>
+        <hr>
+        <p class="cv-text">Detail-oriented admin professional with 3+ years experience.</p>
+        <p class="cv-text small">Education · Experience · Skills</p>
+      </div>
+    </div>
+
+    <div class="cv-example-card">
+      <span class="cv-badge recommended">👍 Recommended</span>
+      <div class="cv-paper">
+        <h3>Thabo Mokoena</h3>
+        <p class="cv-role">Retail Supervisor</p>
+        <hr>
+        <p class="cv-text">Customer-focused retail leader with strong team skills.</p>
+        <p class="cv-text small">Work History · Skills · References</p>
+      </div>
+    </div>
+
+    <div class="cv-example-card">
+      <span class="cv-badge student">🎓 Student</span>
+      <div class="cv-paper">
+        <h3>Lerato Khumalo</h3>
+        <p class="cv-role">Graduate Intern</p>
+        <hr>
+        <p class="cv-text">Motivated graduate seeking entry-level opportunities.</p>
+        <p class="cv-text small">Education · Skills · Projects</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="examples-cta">
+    <a href="signup.html" class="primary-btn">Create my CV like this →</a>
+    <p class="examples-note">Free to build · Pay only when you download</p>
+  </div>
+</section>
+
+<!-- ================= FEATURES ================= -->
+<section class="features">
+  <div class="feature">
+    <h3>Smart Builder</h3>
+    <p>We guide you step-by-step and automatically format a clean CV.</p>
+  </div>
+
+  <div class="feature">
+    <h3>ATS-Friendly Templates</h3>
+    <p>Designed to pass recruiter and screening systems.</p>
+  </div>
+
+  <div class="feature">
+    <h3>AI Writing Assistance</h3>
+    <p>Smart suggestions as you build.</p>
+  </div>
+</section>
+
+<!-- ================= TESTIMONIALS ================= -->
+<section class="testimonials">
+  <h2 class="testimonials-title">What users say</h2>
+
+  <div class="testimonials-grid">
+    <div class="testimonial-card">
+      <p>“My CV went from basic to professional in 10 minutes.”</p>
+      <h4>— Lunga, Cape Town</h4>
+    </div>
+
+    <div class="testimonial-card">
+      <p>“I got interview calls the same week.”</p>
+      <h4>— Mpho, Johannesburg</h4>
+    </div>
+
+    <div class="testimonial-card">
+      <p>“Worth every rand. Simple and clean.”</p>
+      <h4>— Nandi, Durban</h4>
+    </div>
+  </div>
+</section>
+
+<!-- ================= HOW IT WORKS ================= -->
+<section class="how-it-works">
+  <h2 class="hiw-title">How it works</h2>
+
+  <div class="hiw-steps">
+    <div class="hiw-step">
+      <span class="hiw-number">1</span>
+      <h3>Enter your details</h3>
+      <p>Fill in your info and watch it update instantly.</p>
+    </div>
+
+    <div class="hiw-step">
+      <span class="hiw-number">2</span>
+      <h3>Choose a template</h3>
+      <p>Select a professional layout and color.</p>
+    </div>
+
+    <div class="hiw-step">
+      <span class="hiw-number">3</span>
+      <h3>Download instantly</h3>
+      <p>Download as PDF or Word.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= FOOTER ================= -->
+<footer class="landing-footer">
+  <p>© 2026 CV for U — Made with ❤️ in South Africa</p>
+
+  <div class="footer-links">
+    <a href="privacy.html">Privacy Policy</a>
+    <a href="terms.html">Terms of Service</a>
+    <a href="help.html">Support</a>
+  </div>
+</footer>
+
+<!-- ================= SCRIPTS ================= -->
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+
+    const menuBtn = document.getElementById("menuBtn");
+    const mobileMenu = document.getElementById("mobileMenu");
+    const createBtn = document.getElementById("createCvBtn");
+
+    /* ---------- MOBILE MENU ---------- */
+    if (menuBtn && mobileMenu) {
+      menuBtn.addEventListener("click", () => {
+        mobileMenu.classList.toggle("show");
+      });
+
+      // Auto-close menu when a link is clicked
+      mobileMenu.querySelectorAll("a").forEach(link => {
+        link.addEventListener("click", () => {
+          mobileMenu.classList.remove("show");
+        });
+      });
+    }
+
+    /* ---------- AUTH GUARD ---------- */
+    function requireAuth(target) {
+      const user = JSON.parse(localStorage.getItem("user"));
+      if (!user || !user.token) {
+        window.location.href = "login.html";
+      } else {
+        window.location.href = target;
+      }
+    }
+
+    /* ---------- CREATE CV BUTTON ---------- */
+    if (createBtn) {
+      createBtn.addEventListener("click", () => {
+        requireAuth("create-cv.html");
+      });
+    }
+
+  });
+  
+</script>

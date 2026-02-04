@@ -1,0 +1,15 @@
+/* css/protect.css */
+.no-copy {
+  -webkit-user-select: none; /* Chrome/Safari */
+  -moz-user-select: none;    /* Firefox */
+  -ms-user-select: none;     /* IE10+ */
+  user-select: none;         /* Standard */
+}
+
+.no-copy * {
+  pointer-events: none; /* optional to block clicks inside */
+}
+#coverOutput {
+  user-select: text; /* editable */
+  -webkit-user-select: text;
+}

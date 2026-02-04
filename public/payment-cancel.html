@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Payment Cancelled</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- HARD CACHE BUSTER -->
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+  <meta http-equiv="Pragma" content="no-cache">
+</head>
+
+<body style="font-family:system-ui;text-align:center;padding:40px">
+
+  <h1>❌ Payment Cancelled</h1>
+  <p>No charges were made.</p>
+  <p>Returning you to your CV…</p>
+
+  <script>
+    (function () {
+      console.log("❌ PAYMENT CANCEL SCRIPT RUNNING");
+
+      const params = new URLSearchParams(window.location.search);
+      const cvId = params.get("cv");
+
+      console.log("➡️ CANCEL CV ID:", cvId);
+
+      // Safety fallback
+      if (!cvId) {
+        window.location.replace("dashboard.html");
+        return;
+      }
+
+      // Go back to the same CV
+      window.location.replace(`create-cv.html?id=${cvId}`);
+    })();
+  </script>
+
+</body>
+</html>

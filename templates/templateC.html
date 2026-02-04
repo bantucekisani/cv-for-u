@@ -1,0 +1,55 @@
+<div class="cv-preview templateA color-{{color}}">
+
+  <!-- SIDEBAR -->
+  <aside class="cv-sidebar">
+
+    <div class="cv-photo-wrapper">
+      {{photo}}
+    </div>
+
+    <div class="cv-sidebar-section">
+      <h3>Contact</h3>
+      <p>{{email}}</p>
+      <p>{{phone}}</p>
+      <p>{{location}}</p>
+    </div>
+
+    <div class="cv-sidebar-section">
+      <h3>Skills</h3>
+      <ul>
+        {{skills}}
+      </ul>
+    </div>
+
+  </aside>
+
+  <!-- MAIN -->
+  <section class="cv-main">
+
+    <header class="cv-header">
+      <h1>{{name}}</h1>
+      <p class="cv-title">{{title}}</p>
+    </header>
+
+    <section class="cv-block">
+      <h2>Profile</h2>
+      <p>{{summary}}</p>
+    </section>
+
+    <section class="cv-block">
+      <h2>Experience</h2>
+      {{experience}}
+    </section>
+
+    <section class="cv-block">
+      <h2>Education</h2>
+      {{education}}
+    </section>
+
+    <section class="cv-block">
+      <h2>References</h2>
+      {{references}}
+    </section>
+
+  </section>
+</div>

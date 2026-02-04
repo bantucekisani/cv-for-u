@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>CV for U – Improve My CV</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="css/cv.css" />
+</head>
+<body class="improve-body">
+
+  <header class="topbar">
+    <div class="topbar-left">
+      <img src="images/dini.png" class="logo" alt="CV for U logo" />
+      <span class="app-name">CV for U</span>
+    </div>
+    <nav class="topbar-right">
+      <a href="index.html" class="top-link">Home</a>
+      <a href="create-cv.html" class="top-link">Create CV</a>
+    </nav>
+  </header>
+
+  <main class="improve-container">
+    <section class="improve-left">
+      <h1>Improve my CV</h1>
+      <p class="hero-subtitle">
+        Paste your current CV or upload a file. Choose the tone you want, 
+        and we’ll rewrite the content to look more professional.
+      </p>
+
+      <label class="field-label" for="cvTone">Tone</label>
+      <select id="cvTone" class="field-input">
+        <option value="professional">Professional</option>
+        <option value="modern">Modern / Dynamic</option>
+        <option value="student">Student / Graduate</option>
+        <option value="executive">Senior / Executive</option>
+      </select>
+
+      <label class="field-label" for="cvInput">Paste your CV text</label>
+      <textarea id="cvInput" class="field-textarea" rows="12"
+        placeholder="Paste your CV here – including your Experience, Education, Skills, etc.">
+      </textarea>
+
+      <p class="field-helper">OR upload a file (coming soon)</p>
+      <input type="file" id="cvFile" class="field-input" disabled />
+
+      <button id="improveBtn" class="primary-btn wide-btn">
+        Improve my CV
+      </button>
+
+      <p id="improveStatus" class="status-text"></p>
+    </section>
+
+    <section class="improve-right">
+      <h2>Improved CV</h2>
+      <p class="hero-subtitle">
+        This is the AI-polished version of your CV. You can copy it into
+        the builder, your Word doc, or export as PDF.
+      </p>
+
+      <div id="improvedOutput" class="improved-box">
+        <p class="placeholder">Your improved CV will appear here.</p>
+      </div>
+
+      <button id="copyBtn" class="secondary-btn wide-btn" disabled>
+        Copy text
+      </button>
+    </section>
+  </main>
+
+  <script src="js/improve-cv.js"></script>
+</body>
+</html>

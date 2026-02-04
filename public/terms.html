@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Terms of Service – </title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Terms of Service for CV for U – CV building and AI-assisted career tools.">
+  <link rel="stylesheet" href="css/cv.css">
+</head>
+
+<body class="landing-body">
+
+<header class="topbar">
+  <div class="topbar-left">
+    <img src="images/logo.png" class="logo" alt="CV for U logo">
+    <span class="app-name"></span>
+  </div>
+
+  <!-- MOBILE MENU BUTTON -->
+  <button class="mobile-menu-btn" id="menuBtn" aria-label="Menu">☰</button>
+
+  <!-- NAVIGATION -->
+  <nav class="topbar-right" id="mobileMenu">
+    <a href="index.html" class="top-link">Home</a>
+    <a href="pricing.html" class="top-link">Pricing</a>
+        <a href="help.html" class="top-link">Help</a>
+    <a href="login.html" class="top-link">Login</a>
+    <a href="signup.html" class="primary-btn small">Sign Up</a>
+  </nav>
+</header>
+
+
+<main class="legal-page">
+  <h1>Terms of Service</h1>
+  <p><strong>Effective Date:</strong> 1 January 2026</p>
+
+  <h2>1. Acceptance of Terms</h2>
+  <p>
+    By accessing or using CV for U, you agree to be bound by these Terms of Service.
+    If you do not agree, please do not use the service.
+  </p>
+
+  <h2>2. Service Description</h2>
+  <p>
+    CV for U provides tools to create, edit, and download CVs and AI-assisted
+    cover letters. The service is offered on a pay-as-you-go basis.
+  </p>
+
+  <h2>3. Payments & Downloads</h2>
+  <ul>
+    <li>Payment is required to download CVs or AI-generated content</li>
+    <li>Payments are processed securely by third-party payment providers</li>
+    <li>Each purchase unlocks a limited number of downloads per CV</li>
+  </ul>
+
+  <h2>4. Refund Policy</h2>
+  <p>
+    Due to the digital nature of the service, refunds are generally not provided
+    once content has been generated or downloaded, except where required by law.
+  </p>
+
+  <h2>5. AI Content Disclaimer</h2>
+  <p>
+    AI-generated content is provided as assistance only. CV for U does not
+    guarantee employment outcomes, accuracy, or suitability for any specific job.
+    Users are responsible for reviewing and editing all content.
+  </p>
+
+  <h2>6. User Responsibilities</h2>
+  <ul>
+    <li>You must provide accurate information</li>
+    <li>You may not misuse or abuse the platform</li>
+    <li>You may not attempt to reverse-engineer or exploit the service</li>
+  </ul>
+
+  <h2>7. Account Termination</h2>
+  <p>
+    We reserve the right to suspend or terminate accounts that violate these terms.
+  </p>
+
+  <h2>8. Limitation of Liability</h2>
+  <p>
+    CV for U shall not be liable for indirect, incidental, or consequential damages
+    arising from use of the service.
+  </p>
+
+  <h2>9. Privacy</h2>
+  <p>
+    Your use of the service is also governed by our
+    <a href="privacy.html">Privacy Policy</a>.
+  </p>
+
+  <h2>10. Governing Law</h2>
+  <p>
+    These Terms are governed by the laws of the Republic of South Africa.
+  </p>
+
+  <h2>Contact</h2>
+  <p>
+    Email: <strong>support@cvforu.co.za</strong>
+  </p>
+</main>
+
+<!-- ================= FOOTER ================= -->
+<footer class="landing-footer">
+  <p>© 2026 CV for U — Made with ❤️ in South Africa</p>
+
+  <div class="footer-links">
+    <a href="privacy.html">Privacy Policy</a>
+    <a href="terms.html">Terms of Service</a>
+    <a href="help.html">Support</a>
+  </div>
+</footer>
+
+</body>
+<script>
+  const menuBtn = document.getElementById("menuBtn");
+  const mobileMenu = document.getElementById("mobileMenu");
+
+  menuBtn?.addEventListener("click", () => {
+    mobileMenu.classList.toggle("show");
+    menuBtn.textContent =
+      mobileMenu.classList.contains("show") ? "✕" : "☰";
+  });
+
+  mobileMenu?.querySelectorAll("a").forEach(link => {
+    link.addEventListener("click", () => {
+      mobileMenu.classList.remove("show");
+      menuBtn.textContent = "☰";
+    });
+  });
+</script>
+
+</html>

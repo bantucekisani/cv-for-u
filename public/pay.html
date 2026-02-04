@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Payment – CV for U</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="css/cv.css" />
+
+  <style>
+    /* lightweight cancel button style */
+    .link-btn {
+      background: none;
+      border: none;
+      color: #6b7280;
+      margin-top: 14px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .link-btn:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="pay-container">
+    <h1 id="payTitle">Unlock your CV</h1>
+
+    <p id="payDescription">
+      Pay once and download your CV as PDF and Word.
+    </p>
+
+    <h2 id="payAmount">R40.00</h2>
+
+    <button id="payBtn" class="primary-btn">
+      Pay with PayFast
+    </button>
+
+    <!-- ✅ CANCEL / BACK -->
+   <button id="cancelPayBtn" class="secondary-btn">
+  Cancel
+</button>
+
+
+    <!-- ERROR MESSAGE -->
+    <p id="payError" style="color:red; margin-top:12px;"></p>
+
+    <p class="secure">🔒 Secure payment via PayFast</p>
+  </div>
+
+  <!-- =============================
+       PAYMENT CONTEXT (IMPORTANT)
+  ============================== -->
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const type = params.get("type");
+    const cvId = params.get("cv");
+
+    // expose globally for pay.js
+    window.PAY_CV_ID = cvId;
+
+    const titleEl = document.getElementById("payTitle");
+    const descEl = document.getElementById("payDescription");
+    const amountEl = document.getElementById("payAmount");
+
+    if (type === "cover-letter") {
+      titleEl.textContent = "Unlock AI Cover Letter";
+      descEl.textContent =
+        "Get a professionally written AI cover letter instantly.";
+      amountEl.textContent = "R25.00";
+
+      window.PAY_AMOUNT = 25;
+      window.PAY_TYPE = "cover-letter";
+    } else {
+      window.PAY_AMOUNT = 40;
+      window.PAY_TYPE = "cv";
+    }
+  </script>
+<script>
+  document.getElementById("cancelPayBtn")?.addEventListener("click", () => {
+    console.log("❌ Payment cancelled by user");
+
+    const params = new URLSearchParams(window.location.search);
+    const cvId = params.get("cv");
+
+    if (cvId) {
+      window.location.replace(`create-cv.html?id=${cvId}`);
+    } else {
+      window.location.replace("dashboard.html");
+    }
+  });
+</script>
+
+
+  <!-- =============================
+       REQUIRED SCRIPTS
+  ============================== -->
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/pay.js"></script>
+
+</body>
+</html>

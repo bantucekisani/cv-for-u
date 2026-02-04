@@ -1,0 +1,55 @@
+body {
+  font-family: system-ui, sans-serif;
+  margin: 0;
+  background: #f4f6fb;
+}
+
+.admin-header {
+  display: flex;
+  justify-content: space-between;
+  padding: 16px 24px;
+  background: #111827;
+  color: white;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 16px;
+  padding: 20px;
+}
+
+.card {
+  background: white;
+  padding: 16px;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0,0,0,.05);
+  text-align: center;
+}
+
+.panel {
+  background: white;
+  margin: 20px;
+  padding: 16px;
+  border-radius: 10px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  padding: 10px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+th {
+  text-align: left;
+  background: #f9fafb;
+}
+
+button {
+  padding: 6px 10px;
+  cursor: pointer;
+}

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sign Up – CV for U</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="css/auth.css">
+  <link rel="stylesheet" href="css/cv.css">
+</head>
+
+<body class="auth-body">
+
+  <div class="auth-card">
+    <a href="index.html" class="auth-back">← Back</a>
+
+    <h1>Create your account</h1>
+    <p class="auth-sub">Save your CVs and access them anytime</p>
+
+    <form id="signupForm">
+      <div class="form-group">
+        <label>Full name</label>
+        <input type="text" id="signupFullName" required>
+      </div>
+
+      <div class="form-group">
+        <label>Email address</label>
+        <input type="email" id="signupEmail" required>
+      </div>
+
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="signupPassword" required>
+      </div>
+
+      <p id="signupError" style="color:red; font-size:14px;"></p>
+
+      <button type="submit" class="auth-btn">Create account</button>
+    </form>
+
+    <p class="auth-footer">
+      Already have an account?
+      <a href="login.html">Log in</a>
+    </p>
+  </div>
+
+  <!-- JS Scripts -->
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+</body>
+</html>

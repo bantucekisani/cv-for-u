@@ -2,7 +2,9 @@ const express = require("express");
 console.log("🔥 routes/pdf.js LOADED");
 
 const router = express.Router();
-const puppeteer = require("puppeteer-core");
+const puppeteer = require("puppeteer");
+const chromium = require("@sparticuz/chromium");
+
 
 const fs = require("fs");
 const path = require("path");
@@ -39,42 +41,29 @@ try {
 ====================================================== */
 async function renderPdf(html, css) {
   const browser = await puppeteer.launch({
-    headless: "new",
-    executablePath: "/usr/bin/chromium-browser", // ✅ Render Free
-    args: [
-      "--no-sandbox",
-      "--disable-setuid-sandbox",
-      "--disable-dev-shm-usage",
-      "--disable-gpu"
-    ]
+    args: chromium.args,
+    defaultViewport: chromium.defaultViewport,
+    executablePath: await chromium.executablePath(),
+    headless: chromium.headless
   });
 
   const page = await browser.newPage();
 
-  // 🔒 Desktop lock (matches preview exactly)
-  await page.setViewport({
-    width: 1200,
-    height: 1697,
-    deviceScaleFactor: 1
-  });
-
   await page.setContent(
-    `
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <meta charset="utf-8" />
-        <style>
-          ${css}
-          body { margin: 0; background: #fff; }
-        </style>
-      </head>
-      <body class="pdf-mode">
-        ${html}
-      </body>
-    </html>
-    `,
-    { waitUntil: "networkidle0", timeout: 0 }
+    `<!DOCTYPE html>
+     <html>
+       <head>
+         <meta charset="utf-8" />
+         <style>
+           ${css}
+           body { margin: 0; background: #fff; }
+         </style>
+       </head>
+       <body class="pdf-mode">
+         ${html}
+       </body>
+     </html>`,
+    { waitUntil: "networkidle0" }
   );
 
   const pdf = await page.pdf({
@@ -86,7 +75,6 @@ async function renderPdf(html, css) {
   await browser.close();
   return pdf;
 }
-
 
 /* ======================================================
    CV PDF

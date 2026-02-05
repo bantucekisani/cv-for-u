@@ -23,7 +23,6 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^9.0.0",
     "openai": "^6.9.1",
-    "playwright": "^1.58.1",
     "puppeteer": "^24.36.1"
   }
 }

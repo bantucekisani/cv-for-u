@@ -2,8 +2,7 @@ const express = require("express");
 console.log("🔥 routes/pdf.js LOADED");
 
 const router = express.Router();
-const { chromium } = require("playwright");
-
+const puppeteer = require("puppeteer");
 const fs = require("fs");
 const path = require("path");
 
@@ -38,16 +37,17 @@ try {
    PDF RENDERER — DESKTOP LOCK (FINAL)
 ====================================================== */
 async function renderPdf(html, css) {
-  const browser = await chromium.launch({
-    headless: true,
+  const browser = await puppeteer.launch({
+    headless: "new",
     args: ["--no-sandbox", "--disable-setuid-sandbox"]
   });
 
-  const page = await browser.newPage({
-    viewport: {
-      width: 1200,
-      height: 1697
-    }
+  const page = await browser.newPage();
+
+  await page.setViewport({
+    width: 1200,
+    height: 1697,
+    deviceScaleFactor: 1
   });
 
   await page.setContent(
@@ -69,8 +69,13 @@ async function renderPdf(html, css) {
       </body>
     </html>
     `,
-    { waitUntil: "domcontentloaded" }
+    {
+      waitUntil: "domcontentloaded",
+      timeout: 0 // 🔥 NO TIMEOUT
+    }
   );
+
+  await page.emulateMediaType("screen");
 
   const pdf = await page.pdf({
     format: "A4",
@@ -86,7 +91,6 @@ async function renderPdf(html, css) {
   await browser.close();
   return pdf;
 }
-
 
 /* ======================================================
    CV PDF — EXACT PREVIEW MATCH (FIXED)

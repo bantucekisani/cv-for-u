@@ -36,10 +36,18 @@ try {
 /* ======================================================
    PDF RENDERER — DESKTOP LOCK (FINAL)
 ====================================================== */
+const puppeteer = require("puppeteer");
+
 async function renderPdf(html, css) {
   const browser = await puppeteer.launch({
     headless: "new",
-    args: ["--no-sandbox", "--disable-setuid-sandbox"]
+    executablePath: puppeteer.executablePath(), // 🔑 REQUIRED ON RENDER
+    args: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-dev-shm-usage",
+      "--disable-gpu"
+    ]
   });
 
   const page = await browser.newPage();
@@ -50,100 +58,34 @@ async function renderPdf(html, css) {
     deviceScaleFactor: 1
   });
 
-  await page.setContent(
-    `
+  await page.setContent(`
     <!DOCTYPE html>
     <html>
       <head>
         <meta charset="utf-8" />
         <style>
           ${css}
-          body {
-            margin: 0;
-            background: #ffffff;
-          }
+          body { margin: 0; background: #fff; }
         </style>
       </head>
       <body class="pdf-mode">
         ${html}
       </body>
     </html>
-    `,
-    {
-      waitUntil: "domcontentloaded",
-      timeout: 0 // 🔥 NO TIMEOUT
-    }
-  );
-
-  await page.emulateMediaType("screen");
+  `, {
+    waitUntil: "networkidle0",
+    timeout: 0
+  });
 
   const pdf = await page.pdf({
     format: "A4",
     printBackground: true,
-    margin: {
-      top: "0",
-      right: "0",
-      bottom: "0",
-      left: "0"
-    }
+    margin: { top: 0, right: 0, bottom: 0, left: 0 }
   });
 
   await browser.close();
   return pdf;
 }
-
-/* ======================================================
-   CV PDF — EXACT PREVIEW MATCH (FIXED)
-====================================================== */
-router.post("/cv/:id", auth, async (req, res) => {
-  try {
-    console.log("⬇️ CV PDF REQUEST");
-
-    const cv = await CV.findOne({
-      _id: req.params.id,
-      userId: req.user.id
-    });
-
-    if (!cv) {
-      return res.status(404).send("CV not found");
-    }
-
-    if ((cv.downloadsRemaining || 0) <= 0) {
-      return res.status(402).send("No CV downloads remaining");
-    }
-
-    const { html } = req.body;
-
-    if (!html) {
-      return res.status(400).send("No preview HTML received");
-    }
-
-    // ✅ DO NOT WRAP — FRONTEND HTML IS ALREADY CORRECT
-    const pdf = await renderPdf(html, cvCss);
-
-    await CV.findByIdAndUpdate(
-      cv._id,
-      {
-        $inc: { downloadsRemaining: -1 },
-        $set: { lastDownloadedAt: new Date() }
-      }
-    );
-
-    res.writeHead(200, {
-      "Content-Type": "application/pdf",
-      "Content-Disposition": "attachment; filename=CV.pdf",
-      "Content-Length": pdf.length
-    });
-
-    res.end(pdf);
-
-    console.log("✅ CV PDF GENERATED");
-
-  } catch (err) {
-    console.error("❌ CV PDF ERROR:", err);
-    res.status(500).send(`PDF FAILED: ${err.message}`);
-  }
-});
 
 /* ======================================================
    COVER LETTER PDF (UNCHANGED)

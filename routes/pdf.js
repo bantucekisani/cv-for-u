@@ -125,49 +125,56 @@ router.get("/cover-letter/:id", auth, async (req, res) => {
       userId: req.user.id
     });
 
-    if (!cv || !cv.coverLetter) {
+    // 1️⃣ CV exists
+    if (!cv) {
+      return res.status(404).send("CV not found");
+    }
+
+    // 2️⃣ Cover letter exists
+    if (!cv.coverLetter || cv.coverLetter.trim() === "") {
       return res.status(404).send("Cover letter not found");
     }
 
-    if ((cv.coverLettersRemaining || 0) <= 0) {
+    // 3️⃣ Credits available
+    if (cv.coverLettersRemaining <= 0) {
       return res.status(402).send("Cover letter payment required");
     }
-if (!cv.coverLetter) {
-  return res.status(400).json({ error: "No cover letter found" });
-}
 
-const lines = cv.coverLetter.split("\n"); // ✅ THIS WAS MISSING
+    // 4️⃣ Build HTML safely
+    const lines = cv.coverLetter.split("\n");
 
-const html = `
-  <div class="cover-letter">
-    <div class="address">
-      ${lines.slice(0, 7).map(l => `<p>${l}</p>`).join("")}
-    </div>
-    <div class="body">
-      ${lines.slice(7).map(l => `<p>${l}</p>`).join("")}
-    </div>
-  </div>
-`;
+    const html = `
+      <div class="cover-letter">
+        <div class="address">
+          ${lines.slice(0, 7).map(l => `<p>${l}</p>`).join("")}
+        </div>
+        <div class="body">
+          ${lines.slice(7).map(l => `<p>${l}</p>`).join("")}
+        </div>
+      </div>
+    `;
 
-
+    // 5️⃣ Generate PDF (this may throw — that’s GOOD)
     const pdf = await renderPdf(html, coverCss);
 
+    // 6️⃣ ONLY NOW decrement credits
     await CV.updateOne(
       { _id: cv._id },
       { $inc: { coverLettersRemaining: -1 } }
     );
 
-    res.writeHead(200, {
+    // 7️⃣ Send file
+    res.set({
       "Content-Type": "application/pdf",
       "Content-Disposition": "attachment; filename=Cover_Letter.pdf",
       "Content-Length": pdf.length
     });
 
-    res.end(pdf);
+    return res.status(200).end(pdf);
 
   } catch (err) {
     console.error("❌ COVER LETTER PDF ERROR:", err);
-    res.status(500).send("Cover letter PDF failed");
+    return res.status(500).send("Cover letter PDF failed");
   }
 });
 

@@ -41,35 +41,58 @@ try {
 ====================================================== */
 async function renderPdf(html, css) {
   const browser = await puppeteer.launch({
-    args: chromium.args,
-    defaultViewport: chromium.defaultViewport,
-    executablePath: await chromium.executablePath(),
-    headless: chromium.headless
+    headless: "new",
+    executablePath: "/usr/bin/chromium-browser",
+    args: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-dev-shm-usage",
+      "--disable-gpu"
+    ]
   });
 
   const page = await browser.newPage();
 
+  // 🔒 EXACTLY MATCH PREVIEW
+  await page.setViewport({
+    width: 1200,
+    height: 1697,
+    deviceScaleFactor: 1
+  });
+
+  // 🔥 THIS IS THE KEY YOU ASKED ABOUT
+  await page.emulateMediaType("screen");
+
   await page.setContent(
     `<!DOCTYPE html>
-     <html>
-       <head>
-         <meta charset="utf-8" />
-         <style>
-           ${css}
-           body { margin: 0; background: #fff; }
-         </style>
-       </head>
-       <body class="pdf-mode">
-         ${html}
-       </body>
-     </html>`,
-    { waitUntil: "networkidle0" }
+<html>
+<head>
+  <meta charset="utf-8" />
+  <style>
+    ${css}
+    body {
+      margin: 0;
+      background: #fff;
+    }
+  </style>
+</head>
+<body class="pdf-mode">
+  ${html}
+</body>
+</html>`,
+    { waitUntil: "networkidle0", timeout: 0 }
   );
 
   const pdf = await page.pdf({
     format: "A4",
     printBackground: true,
-    margin: { top: 0, right: 0, bottom: 0, left: 0 }
+    scale: 1,
+    margin: {
+      top: 0,
+      right: 0,
+      bottom: 0,
+      left: 0
+    }
   });
 
   await browser.close();
@@ -133,11 +156,13 @@ router.get("/cover-letter/:id", auth, async (req, res) => {
       return res.status(404).send("Cover letter not found");
     }
 
-    // ✅ ONLY block if credits exist AND are zero
-    if (
-      typeof cv.coverLettersRemaining === "number" &&
-      cv.coverLettersRemaining <= 0
-    ) {
+    // 🔥 DEFAULT FREE DOWNLOAD (first time)
+    if (cv.coverLettersRemaining === undefined) {
+      cv.coverLettersRemaining = 1;
+      await cv.save();
+    }
+
+    if (cv.coverLettersRemaining <= 0) {
       return res.status(402).send("Cover letter payment required");
     }
 
@@ -156,13 +181,11 @@ router.get("/cover-letter/:id", auth, async (req, res) => {
 
     const pdf = await renderPdf(html, coverCss);
 
-    // ✅ Decrement ONLY if field exists
-    if (typeof cv.coverLettersRemaining === "number") {
-      await CV.updateOne(
-        { _id: cv._id },
-        { $inc: { coverLettersRemaining: -1 } }
-      );
-    }
+    // 🔥 decrement AFTER successful render
+    await CV.updateOne(
+      { _id: cv._id },
+      { $inc: { coverLettersRemaining: -1 } }
+    );
 
     res.writeHead(200, {
       "Content-Type": "application/pdf",

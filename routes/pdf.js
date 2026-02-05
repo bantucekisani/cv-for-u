@@ -144,19 +144,23 @@ router.get("/cover-letter/:id", auth, async (req, res) => {
     if ((cv.coverLettersRemaining || 0) <= 0) {
       return res.status(402).send("Cover letter payment required");
     }
+if (!cv.coverLetter) {
+  return res.status(400).json({ error: "No cover letter found" });
+}
 
-    const lines = cv.coverLetter.split("\n");
+const lines = cv.coverLetter.split("\n"); // ✅ THIS WAS MISSING
 
-    const html = `
-      <div class="cover-letter">
-        <div class="address">
-          ${lines.slice(0, 7).map(l => `<p>${l}</p>`).join("")}
-        </div>
-        <div class="body">
-          ${lines.slice(7).map(l => `<p>${l}</p>`).join("")}
-        </div>
-      </div>
-    `;
+const html = `
+  <div class="cover-letter">
+    <div class="address">
+      ${lines.slice(0, 7).map(l => `<p>${l}</p>`).join("")}
+    </div>
+    <div class="body">
+      ${lines.slice(7).map(l => `<p>${l}</p>`).join("")}
+    </div>
+  </div>
+`;
+
 
     const pdf = await renderPdf(html, coverCss);
 

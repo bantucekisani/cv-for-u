@@ -2,7 +2,7 @@ const express = require("express");
 console.log("🔥 routes/pdf.js LOADED");
 
 const router = express.Router();
-const puppeteer = require("puppeteer");
+const puppeteer = require("puppeteer-core");
 const chromium = require("@sparticuz/chromium");
 
 const fs = require("fs");
@@ -37,26 +37,25 @@ try {
 }
 
 /* ======================================================
-   PDF RENDERER — RENDER SAFE (RENDER FREE)
+   PDF RENDERER — RENDER FREE SAFE
 ====================================================== */
 async function renderPdf(html, css) {
   const browser = await puppeteer.launch({
     args: chromium.args,
     executablePath: await chromium.executablePath(),
-    headless: chromium.headless,
-    defaultViewport: null
+    headless: chromium.headless
   });
 
   const page = await browser.newPage();
 
-  // ✅ EXACT PREVIEW SIZE
+  // ✅ LOCK VIEWPORT TO PREVIEW SIZE
   await page.setViewport({
     width: 1200,
     height: 1697,
     deviceScaleFactor: 1
   });
 
-  // ✅ MATCH SCREEN (NOT PRINT)
+  // ✅ FORCE SCREEN STYLES (KEY FIX)
   await page.emulateMediaType("screen");
 
   await page.setContent(
@@ -73,7 +72,7 @@ async function renderPdf(html, css) {
   ${html}
 </body>
 </html>`,
-    { waitUntil: "networkidle0", timeout: 0 }
+    { waitUntil: "networkidle0" }
   );
 
   const pdf = await page.pdf({
@@ -102,12 +101,12 @@ router.post("/cv/:id", auth, async (req, res) => {
       return res.status(402).send("CV payment required");
     }
 
-    // ✅ SERVER-SIDE RENDER (SAME AS PREVIEW)
+    // ✅ SERVER RENDER (SAME AS PREVIEW)
     const html = renderCvHTML(cv);
 
     const pdf = await renderPdf(html, cvCss);
 
-    // ✅ DECREMENT AFTER SUCCESS
+    // ✅ DECREMENT ONLY AFTER SUCCESS
     await CV.updateOne(
       { _id: cv._id },
       { $inc: { downloadsRemaining: -1 } }
@@ -138,12 +137,12 @@ router.get("/cover-letter/:id", auth, async (req, res) => {
 
     if (!cv) return res.status(404).send("CV not found");
 
-    if (!cv.coverLetter || !cv.coverLetter.trim()) {
+    if (!cv.coverLetter?.trim()) {
       return res.status(404).send("Cover letter not found");
     }
 
     // ✅ FIRST DOWNLOAD FREE
-    if (cv.coverLettersRemaining === undefined) {
+    if (cv.coverLettersRemaining == null) {
       cv.coverLettersRemaining = 1;
       await cv.save();
     }
@@ -167,7 +166,7 @@ router.get("/cover-letter/:id", auth, async (req, res) => {
 
     const pdf = await renderPdf(html, coverCss);
 
-    // ✅ DECREMENT AFTER SUCCESS
+    // ✅ DECREMENT ONLY AFTER SUCCESS
     await CV.updateOne(
       { _id: cv._id },
       { $inc: { coverLettersRemaining: -1 } }

@@ -34,14 +34,11 @@ try {
 }
 
 /* ======================================================
-   PDF RENDERER — DESKTOP LOCK (FINAL)
+   PDF RENDERER — RENDER SAFE
 ====================================================== */
-const puppeteer = require("puppeteer");
-
 async function renderPdf(html, css) {
   const browser = await puppeteer.launch({
-    headless: "new",
-    executablePath: puppeteer.executablePath(), // 🔑 REQUIRED ON RENDER
+    headless: true,
     args: [
       "--no-sandbox",
       "--disable-setuid-sandbox",
@@ -58,24 +55,22 @@ async function renderPdf(html, css) {
     deviceScaleFactor: 1
   });
 
-  await page.setContent(`
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <meta charset="utf-8" />
-        <style>
-          ${css}
-          body { margin: 0; background: #fff; }
-        </style>
-      </head>
-      <body class="pdf-mode">
-        ${html}
-      </body>
-    </html>
-  `, {
-    waitUntil: "networkidle0",
-    timeout: 0
-  });
+  await page.setContent(
+    `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <style>
+    ${css}
+    body { margin: 0; background: #fff; }
+  </style>
+</head>
+<body class="pdf-mode">
+  ${html}
+</body>
+</html>`,
+    { waitUntil: "networkidle0" }
+  );
 
   const pdf = await page.pdf({
     format: "A4",
@@ -88,7 +83,46 @@ async function renderPdf(html, css) {
 }
 
 /* ======================================================
-   COVER LETTER PDF (UNCHANGED)
+   CV PDF
+====================================================== */
+router.post("/cv/:id", auth, async (req, res) => {
+  try {
+    const cv = await CV.findOne({
+      _id: req.params.id,
+      userId: req.user.id
+    });
+
+    if (!cv) {
+      return res.status(404).send("CV not found");
+    }
+
+    if ((cv.downloadsRemaining || 0) <= 0) {
+      return res.status(402).send("CV payment required");
+    }
+
+    const pdf = await renderPdf(req.body.html, cvCss);
+
+    await CV.updateOne(
+      { _id: cv._id },
+      { $inc: { downloadsRemaining: -1 } }
+    );
+
+    res.writeHead(200, {
+      "Content-Type": "application/pdf",
+      "Content-Disposition": "attachment; filename=CV.pdf",
+      "Content-Length": pdf.length
+    });
+
+    res.end(pdf);
+
+  } catch (err) {
+    console.error("❌ CV PDF ERROR:", err);
+    res.status(500).send("CV PDF failed");
+  }
+});
+
+/* ======================================================
+   COVER LETTER PDF
 ====================================================== */
 router.get("/cover-letter/:id", auth, async (req, res) => {
   try {

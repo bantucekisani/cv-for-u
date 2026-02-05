@@ -2,7 +2,6 @@ const express = require("express");
 const router = express.Router();
 const auth = require("../middleware/auth");
 const CV = require("../models/Cv");
-const puppeteer = require("puppeteer");
 
 /* ======================================================
    SAVE CV (CREATE or UPDATE)
@@ -14,35 +13,39 @@ router.post("/save", auth, async (req, res) => {
     const body = req.body;
 
     let cv;
-if (body._id) {
-  cv = await CV.findOne({ _id: body._id });
 
-  if (!cv) {
-    return res.status(404).json({ success: false, message: "CV not found" });
-  }
+    if (body._id) {
+      cv = await CV.findOne({ _id: body._id });
 
-  // 🔥 RECLAIM OLD CVS WITHOUT OWNER
-  if (!cv.userId) {
-    cv.userId = userId;
-  }
+      if (!cv) {
+        return res.status(404).json({
+          success: false,
+          message: "CV not found"
+        });
+      }
 
-  // 🔒 SECURITY: block other users
-  if (cv.userId.toString() !== userId) {
-    return res.status(403).json({ success: false, message: "Forbidden" });
-  }
+      // 🔥 reclaim old orphaned CVs
+      if (!cv.userId) {
+        cv.userId = userId;
+      }
 
-} else {
-  cv = new CV({ userId });
-}
+      // 🔒 security
+      if (cv.userId.toString() !== userId) {
+        return res.status(403).json({
+          success: false,
+          message: "Forbidden"
+        });
+      }
+    } else {
+      cv = new CV({ userId });
+    }
 
-
-    /* ===== CV META (DASHBOARD NAME) ===== */
-   if (typeof body.cvName === "string" && body.cvName.trim()) {
-  cv.cvName = body.cvName.trim();
-} else if (!cv.cvName) {
-  cv.cvName = body.name?.trim() || "Untitled CV";
-}
-
+    /* ===== CV META (Dashboard Name) ===== */
+    if (typeof body.cvName === "string" && body.cvName.trim()) {
+      cv.cvName = body.cvName.trim();
+    } else if (!cv.cvName) {
+      cv.cvName = body.name?.trim() || "Untitled CV";
+    }
 
     /* ===== PERSONAL INFO ===== */
     cv.name = String(body.name || "").trim();
@@ -51,6 +54,7 @@ if (body._id) {
     cv.phone = String(body.phone || "").trim();
     cv.location = String(body.location || "").trim();
     cv.summary = String(body.summary || "").trim();
+
     /* ===== COVER LETTER ===== */
     cv.coverLetter = String(body.coverLetter || "").trim();
 
@@ -67,23 +71,18 @@ if (body._id) {
     /* ===== PHOTO ===== */
     cv.photo = body.photo || cv.photo || null;
 
-    console.log("CV BEFORE SAVE:", {
-      cvName: cv.cvName,
-      name: cv.name,
-      title: cv.title,
-      email: cv.email
-    });
-
     await cv.save();
 
     res.json({ success: true, cv });
 
   } catch (err) {
     console.error("CV SAVE ERROR:", err);
-    res.status(500).json({ success: false, message: "Save failed" });
+    res.status(500).json({
+      success: false,
+      message: "Save failed"
+    });
   }
 });
-
 
 /* ======================================================
    GET ALL CVs (Dashboard)
@@ -99,18 +98,24 @@ router.get("/my-cvs", auth, async (req, res) => {
   }
 });
 
-
 /* ======================================================
    DUPLICATE CV
 ====================================================== */
 router.post("/duplicate/:id", auth, async (req, res) => {
   try {
-    const cv = await CV.findOne({ _id: req.params.id, userId: req.user.id });
-    if (!cv) return res.status(404).json({ success: false });
+    const cv = await CV.findOne({
+      _id: req.params.id,
+      userId: req.user.id
+    });
+
+    if (!cv) {
+      return res.status(404).json({ success: false });
+    }
 
     const copy = cv.toObject();
     delete copy._id;
-    copy.userId = req.user.id; // 🔒 FORCE OWNER
+
+    copy.userId = req.user.id;
     copy.cvName = `${cv.cvName || cv.name} (Copy)`;
     copy.updatedAt = new Date();
 
@@ -118,12 +123,15 @@ router.post("/duplicate/:id", auth, async (req, res) => {
     res.json({ success: true, cv: newCv });
 
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({
+      success: false,
+      message: err.message
+    });
   }
 });
 
 /* ======================================================
-   RENAME CV (DASHBOARD ONLY)
+   RENAME CV (Dashboard only)
 ====================================================== */
 router.post("/rename/:id", auth, async (req, res) => {
   try {
@@ -135,14 +143,15 @@ router.post("/rename/:id", auth, async (req, res) => {
 
     res.json({ success: true, cv });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({
+      success: false,
+      message: err.message
+    });
   }
 });
 
-
 /* ======================================================
-   SAVE COVER LETTER ONLY (NO CV SAVE)
-   POST /api/cv/:id/cover-letter
+   SAVE COVER LETTER ONLY
 ====================================================== */
 router.post("/:id/cover-letter", auth, async (req, res) => {
   try {
@@ -176,7 +185,6 @@ router.post("/:id/cover-letter", auth, async (req, res) => {
   }
 });
 
-
 /* ======================================================
    GET SINGLE CV
 ====================================================== */
@@ -188,13 +196,12 @@ router.get("/:id", auth, async (req, res) => {
       return res.status(404).json({ success: false });
     }
 
-    // 🔥 AUTO-FIX OLD CVS
+    // 🔥 auto-fix old CVs
     if (!cv.userId) {
       cv.userId = req.user.id;
       await cv.save();
     }
 
-    // 🔒 SECURITY CHECK
     if (cv.userId.toString() !== req.user.id) {
       return res.status(403).json({ success: false });
     }
@@ -205,8 +212,6 @@ router.get("/:id", auth, async (req, res) => {
     res.status(500).json({ success: false });
   }
 });
-
-
 
 /* ======================================================
    DELETE CV
@@ -230,6 +235,5 @@ router.delete("/:id", auth, async (req, res) => {
     res.status(500).json({ success: false });
   }
 });
-
 
 module.exports = router;

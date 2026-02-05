@@ -5,12 +5,12 @@ const router = express.Router();
 const puppeteer = require("puppeteer");
 const chromium = require("@sparticuz/chromium");
 
-
 const fs = require("fs");
 const path = require("path");
 
 const CV = require("../models/Cv");
 const auth = require("../middleware/auth");
+const renderCvHTML = require("../utils/renderCvHTML");
 
 /* ======================================================
    LOAD SAME CSS AS PREVIEW
@@ -37,30 +37,26 @@ try {
 }
 
 /* ======================================================
-   PDF RENDERER — RENDER SAFE
+   PDF RENDERER — RENDER SAFE (RENDER FREE)
 ====================================================== */
 async function renderPdf(html, css) {
   const browser = await puppeteer.launch({
-    headless: "new",
-    executablePath: "/usr/bin/chromium-browser",
-    args: [
-      "--no-sandbox",
-      "--disable-setuid-sandbox",
-      "--disable-dev-shm-usage",
-      "--disable-gpu"
-    ]
+    args: chromium.args,
+    executablePath: await chromium.executablePath(),
+    headless: chromium.headless,
+    defaultViewport: null
   });
 
   const page = await browser.newPage();
 
-  // 🔒 EXACTLY MATCH PREVIEW
+  // ✅ EXACT PREVIEW SIZE
   await page.setViewport({
     width: 1200,
     height: 1697,
     deviceScaleFactor: 1
   });
 
-  // 🔥 THIS IS THE KEY YOU ASKED ABOUT
+  // ✅ MATCH SCREEN (NOT PRINT)
   await page.emulateMediaType("screen");
 
   await page.setContent(
@@ -70,10 +66,7 @@ async function renderPdf(html, css) {
   <meta charset="utf-8" />
   <style>
     ${css}
-    body {
-      margin: 0;
-      background: #fff;
-    }
+    body { margin: 0; background: #fff; }
   </style>
 </head>
 <body class="pdf-mode">
@@ -86,13 +79,7 @@ async function renderPdf(html, css) {
   const pdf = await page.pdf({
     format: "A4",
     printBackground: true,
-    scale: 1,
-    margin: {
-      top: 0,
-      right: 0,
-      bottom: 0,
-      left: 0
-    }
+    margin: { top: 0, right: 0, bottom: 0, left: 0 }
   });
 
   await browser.close();
@@ -109,28 +96,29 @@ router.post("/cv/:id", auth, async (req, res) => {
       userId: req.user.id
     });
 
-    if (!cv) {
-      return res.status(404).send("CV not found");
-    }
+    if (!cv) return res.status(404).send("CV not found");
 
     if ((cv.downloadsRemaining || 0) <= 0) {
       return res.status(402).send("CV payment required");
     }
 
-    const pdf = await renderPdf(req.body.html, cvCss);
+    // ✅ SERVER-SIDE RENDER (SAME AS PREVIEW)
+    const html = renderCvHTML(cv);
 
+    const pdf = await renderPdf(html, cvCss);
+
+    // ✅ DECREMENT AFTER SUCCESS
     await CV.updateOne(
       { _id: cv._id },
       { $inc: { downloadsRemaining: -1 } }
     );
 
-    res.writeHead(200, {
+    res.set({
       "Content-Type": "application/pdf",
-      "Content-Disposition": "attachment; filename=CV.pdf",
-      "Content-Length": pdf.length
+      "Content-Disposition": "attachment; filename=CV.pdf"
     });
 
-    res.end(pdf);
+    res.send(pdf);
 
   } catch (err) {
     console.error("❌ CV PDF ERROR:", err);
@@ -148,15 +136,13 @@ router.get("/cover-letter/:id", auth, async (req, res) => {
       userId: req.user.id
     });
 
-    if (!cv) {
-      return res.status(404).send("CV not found");
-    }
+    if (!cv) return res.status(404).send("CV not found");
 
     if (!cv.coverLetter || !cv.coverLetter.trim()) {
       return res.status(404).send("Cover letter not found");
     }
 
-    // 🔥 DEFAULT FREE DOWNLOAD (first time)
+    // ✅ FIRST DOWNLOAD FREE
     if (cv.coverLettersRemaining === undefined) {
       cv.coverLettersRemaining = 1;
       await cv.save();
@@ -181,19 +167,18 @@ router.get("/cover-letter/:id", auth, async (req, res) => {
 
     const pdf = await renderPdf(html, coverCss);
 
-    // 🔥 decrement AFTER successful render
+    // ✅ DECREMENT AFTER SUCCESS
     await CV.updateOne(
       { _id: cv._id },
       { $inc: { coverLettersRemaining: -1 } }
     );
 
-    res.writeHead(200, {
+    res.set({
       "Content-Type": "application/pdf",
-      "Content-Disposition": "attachment; filename=Cover_Letter.pdf",
-      "Content-Length": pdf.length
+      "Content-Disposition": "attachment; filename=Cover_Letter.pdf"
     });
 
-    res.end(pdf);
+    res.send(pdf);
 
   } catch (err) {
     console.error("❌ COVER LETTER PDF ERROR:", err);

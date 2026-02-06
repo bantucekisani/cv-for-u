@@ -177,6 +177,16 @@ async function callAI(url, body) {
 document.addEventListener("DOMContentLoaded", () => {
   console.log("CV JS LOADED");
 
+
+  const forceReloadCv = localStorage.getItem("forceReloadCv");
+
+if (forceReloadCv) {
+  console.log("🔁 Reloading CV after payment:", forceReloadCv);
+  localStorage.removeItem("forceReloadCv");
+  loadCV(forceReloadCv);
+}
+
+
     // 🔥 RESTORE CV ID AFTER PAYMENT REDIRECT (SAFE POSITION)
   const lastCvId = localStorage.getItem("lastCvId");
   if (!editingId && lastCvId) {
@@ -915,16 +925,32 @@ document.getElementById("downloadCoverPdf")
 
     disableBtn("downloadCoverPdf", "Downloading…");
 
-    const res = await fetch(
-      `${window.API_BASE}/api/pdf/cover-letter/${currentCv._id}`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+    const url = `${window.API_BASE}/api/pdf/cover-letter/${currentCv._id}`;
 
-    // 💳 PAYMENT REQUIRED
+    // 1️⃣ FIRST ATTEMPT
+    let res = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    // 💳 PAYMENT REQUIRED (possible IPN delay)
     if (res.status === 402) {
-      window.location.href =
-        `pay.html?type=cover-letter&cv=${currentCv._id}`;
-      return;
+      console.warn("⏳ Cover letter credit not ready, retrying…");
+
+      // 🔥 WAIT FOR PAYFAST IPN (2 seconds)
+      await new Promise(r => setTimeout(r, 2000));
+
+      // 2️⃣ RETRY ONCE
+      res = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      // ❌ STILL NOT READY → GO TO PAYMENT
+      if (res.status === 402) {
+        enableBtn("downloadCoverPdf", "Pay to download Cover Letter");
+        window.location.href =
+          `pay.html?type=cover-letter&cv=${currentCv._id}`;
+        return;
+      }
     }
 
     if (!res.ok) {
@@ -933,21 +959,22 @@ document.getElementById("downloadCoverPdf")
       return;
     }
 
+    // ✅ SUCCESS
     const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
+    const fileUrl = URL.createObjectURL(blob);
 
     const a = document.createElement("a");
-    a.href = url;
+    a.href = fileUrl;
     a.download = "Cover_Letter.pdf";
     a.click();
 
-    URL.revokeObjectURL(url);
+    URL.revokeObjectURL(fileUrl);
 
     // 🔁 Refresh CV state (credits update)
     await loadCV(currentCv._id);
 
     enableBtn("downloadCoverPdf", "Download Cover Letter");
-});
+  });
 
   if (!experienceList.children.length) createExperienceBlock();
   if (!educationList.children.length) createEducationBlock();

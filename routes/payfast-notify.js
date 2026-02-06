@@ -13,6 +13,9 @@ router.post("/notify", async (req, res) => {
 
     const rawBody = req.body.toString();
 
+    // -----------------------------
+    // Parse PayFast payload
+    // -----------------------------
     const data = Object.fromEntries(
       rawBody.split("&").map(pair => {
         const [k, v] = pair.split("=");
@@ -24,6 +27,7 @@ router.post("/notify", async (req, res) => {
        1️⃣ PAYMENT STATUS
     ========================= */
     if (data.payment_status !== "COMPLETE") {
+      console.warn("⚠️ Payment not complete:", data.payment_status);
       return res.status(200).send("Ignored");
     }
 
@@ -52,18 +56,40 @@ router.post("/notify", async (req, res) => {
     const paymentId = data.m_payment_id;
     const amount = Math.round(Number(data.amount_gross || 0) * 100) / 100;
 
-    // 🔥 EXTRACT USER + CV FROM PAYMENT ID
+    // ---------------------------------------------
+    // 🔥 SAFE PARSING OF PAYMENT ID
+    // paymentId formats:
+    // cv-<cvId>-<userId>-<timestamp>
+    // cover-letter-<cvId>-<userId>-<timestamp>
+    // ---------------------------------------------
     const parts = paymentId.split("-");
-    const userId = parts[parts.length - 2];   // 🔥 userId
-    const type = parts[0];                    // cv | cover-letter
 
-    console.log("💳 APPLYING PAYMENT:", paymentId, amount, userId);
+    let type, cvId, userId;
+
+    if (parts[0] === "cover" && parts[1] === "letter") {
+      type = "cover-letter";
+      cvId = parts[2];
+      userId = parts[3];
+    } else {
+      type = parts[0]; // "cv"
+      cvId = parts[1];
+      userId = parts[2];
+    }
+
+    console.log("💳 APPLYING PAYMENT:", {
+      paymentId,
+      type,
+      cvId,
+      userId,
+      amount
+    });
 
     /* =========================
-       4️⃣ IDEMPOTENCY
+       4️⃣ IDEMPOTENCY CHECK
     ========================= */
     const existing = await Payment.findOne({ paymentId });
     if (existing) {
+      console.warn("⚠️ Payment already processed:", paymentId);
       return res.status(200).send("Already processed");
     }
 
@@ -72,7 +98,8 @@ router.post("/notify", async (req, res) => {
     ========================= */
     const payment = await Payment.create({
       paymentId,
-      userId,                                 // 🔥 FIXED
+      userId,
+      cvId,
       provider: "payfast",
       amount,
       status: "COMPLETE",
@@ -83,8 +110,6 @@ router.post("/notify", async (req, res) => {
        CV PURCHASE — R40
     ================================================== */
     if (type === "cv" && amount === 40) {
-      const cvId = parts[1];
-
       await CV.findByIdAndUpdate(cvId, {
         $set: { isPaid: true },
         $inc: {
@@ -93,28 +118,19 @@ router.post("/notify", async (req, res) => {
         }
       });
 
-      payment.cvId = cvId;
-      await payment.save();
+      console.log("✅ CV credits applied");
     }
 
     /* ==================================================
        COVER LETTER — R25
     ================================================== */
     if (type === "cover-letter" && amount === 25) {
-  const cvId = parts[1];
+      await CV.findByIdAndUpdate(cvId, {
+        $inc: { coverLettersRemaining: 1 }
+      });
 
-  await CV.findByIdAndUpdate(
-    cvId,
-    {
-      $setOnInsert: { coverLettersRemaining: 0 },
-      $inc: { coverLettersRemaining: 1 }
-    },
-    { upsert: false }
-  );
-
-  payment.cvId = cvId;
-  await payment.save();
-}
+      console.log("✅ Cover letter credit applied");
+    }
 
     return res.status(200).send("OK");
 

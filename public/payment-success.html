@@ -21,15 +21,25 @@
 
       const params = new URLSearchParams(window.location.search);
       const cvId = params.get("cv");
+      const type = params.get("type"); // 🔥 THIS WAS MISSING
 
       console.log("➡️ CV ID:", cvId);
+      console.log("➡️ PAYMENT TYPE:", type);
 
       if (!cvId) {
         console.warn("⚠️ No CV ID — going to dashboard");
         window.location.replace("dashboard.html");
         return;
       }
- localStorage.setItem("forceReloadCv", cvId);
+
+      // 🔥 MARK COVER LETTER AS JUST PAID (ONE-TIME)
+      if (type === "cover-letter") {
+        localStorage.setItem("coverJustPaid", "1");
+        console.log("🟢 coverJustPaid flag set");
+      }
+
+      // force CV reload
+      localStorage.setItem("forceReloadCv", cvId);
 
       // ⏩ ALWAYS GO BACK TO THE SAME CV
       window.location.replace(`create-cv.html?id=${cvId}`);

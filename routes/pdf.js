@@ -134,17 +134,12 @@ router.get("/cover-letter/:id", auth, async (req, res) => {
       return res.status(404).send("Cover letter not found");
     }
 
-    // ✅ EXACT SAME PATTERN AS CV
+    // 🔥 IDENTICAL GATE TO CV
     if ((cv.coverLettersRemaining || 0) <= 0) {
       return res.status(402).send("Cover letter payment required");
     }
 
-    // 🔥 CONSUME CREDIT FIRST
-    await CV.updateOne(
-      { _id: cv._id },
-      { $inc: { coverLettersRemaining: -1 } }
-    );
-
+    // 🔥 RENDER FIRST (same pattern as CV)
     const html = `
       <div class="cover-letter">
         ${cv.coverLetter
@@ -155,6 +150,12 @@ router.get("/cover-letter/:id", auth, async (req, res) => {
     `;
 
     const pdf = await renderPdf(html, coverCss);
+
+    // 🔥 CONSUME CREDIT AFTER SUCCESS
+    await CV.updateOne(
+      { _id: cv._id },
+      { $inc: { coverLettersRemaining: -1 } }
+    );
 
     res.set({
       "Content-Type": "application/pdf",
@@ -168,6 +169,5 @@ router.get("/cover-letter/:id", auth, async (req, res) => {
     res.status(500).send("Cover letter PDF failed");
   }
 });
-
 
 module.exports = router;

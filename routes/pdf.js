@@ -12,7 +12,6 @@ const CV = require("../models/Cv");
 const auth = require("../middleware/auth");
 const renderCvHTML = require("../utils/renderTemplate");
 
-
 /* ======================================================
    LOAD SAME CSS AS PREVIEW
 ====================================================== */
@@ -44,7 +43,7 @@ async function renderPdf(html, css) {
   const browser = await puppeteer.launch({
     args: chromium.args,
     executablePath: await chromium.executablePath(),
-    headless: chromium.headless,
+    headless: chromium.headless
   });
 
   const page = await browser.newPage();
@@ -52,7 +51,7 @@ async function renderPdf(html, css) {
   await page.setViewport({
     width: 1200,
     height: 1697,
-    deviceScaleFactor: 1,
+    deviceScaleFactor: 1
   });
 
   await page.emulateMediaType("screen");
@@ -77,7 +76,7 @@ async function renderPdf(html, css) {
   const pdf = await page.pdf({
     format: "A4",
     printBackground: true,
-    margin: { top: 0, right: 0, bottom: 0, left: 0 },
+    margin: { top: 0, right: 0, bottom: 0, left: 0 }
   });
 
   await browser.close();
@@ -100,12 +99,9 @@ router.post("/cv/:id", auth, async (req, res) => {
       return res.status(402).send("CV payment required");
     }
 
-    // ✅ SERVER RENDER (SAME AS PREVIEW)
     const html = renderCvHTML(cv);
-
     const pdf = await renderPdf(html, cvCss);
 
-    // ✅ DECREMENT ONLY AFTER SUCCESS
     await CV.updateOne(
       { _id: cv._id },
       { $inc: { downloadsRemaining: -1 } }
@@ -125,11 +121,11 @@ router.post("/cv/:id", auth, async (req, res) => {
 });
 
 /* ======================================================
-   COVER LETTER PDF
+   COVER LETTER PDF (IPN-SAFE)
 ====================================================== */
 router.get("/cover-letter/:id", auth, async (req, res) => {
   try {
-    const cv = await CV.findOne({
+    let cv = await CV.findOne({
       _id: req.params.id,
       userId: req.user.id
     });
@@ -138,9 +134,17 @@ router.get("/cover-letter/:id", auth, async (req, res) => {
       return res.status(404).send("Cover letter not found");
     }
 
+    // 🔥 IPN grace retry (PayFast delay)
     if ((cv.coverLettersRemaining || 0) <= 0) {
-      return res.status(402).send("Cover letter payment required");
+      await new Promise(r => setTimeout(r, 2000));
+      cv = await CV.findById(cv._id);
+
+      if ((cv.coverLettersRemaining || 0) <= 0) {
+        return res.status(402).send("Cover letter payment required");
+      }
     }
+
+    console.log("📄 Cover letter credits before:", cv.coverLettersRemaining);
 
     const lines = cv.coverLetter.split("\n");
 
@@ -162,19 +166,17 @@ router.get("/cover-letter/:id", auth, async (req, res) => {
       { $inc: { coverLettersRemaining: -1 } }
     );
 
-    res.writeHead(200, {
+    res.set({
       "Content-Type": "application/pdf",
-      "Content-Disposition": "attachment; filename=Cover_Letter.pdf",
-      "Content-Length": pdf.length
+      "Content-Disposition": "attachment; filename=Cover_Letter.pdf"
     });
 
-    res.end(pdf);
+    res.send(pdf);
 
   } catch (err) {
     console.error("❌ COVER LETTER PDF ERROR:", err);
     res.status(500).send("Cover letter PDF failed");
   }
 });
-
 
 module.exports = router;

@@ -178,21 +178,8 @@ document.addEventListener("DOMContentLoaded", () => {
   console.log("CV JS LOADED");
 
 
-  const forceReloadCv = localStorage.getItem("forceReloadCv");
-
-if (forceReloadCv) {
-  console.log("🔁 Reloading CV after payment:", forceReloadCv);
-  localStorage.removeItem("forceReloadCv");
-  loadCV(forceReloadCv);
-}
-
-
-    // 🔥 RESTORE CV ID AFTER PAYMENT REDIRECT (SAFE POSITION)
-  const lastCvId = localStorage.getItem("lastCvId");
-  if (!editingId && lastCvId) {
-    console.log("♻️ Restoring CV from lastCvId:", lastCvId);
-    loadCV(lastCvId);
-  }
+ 
+  
 
   // 🔁 RESTORE COVER LETTER AFTER PAYFAST REDIRECT
 const pendingCover = localStorage.getItem("pendingCoverLetter");
@@ -672,7 +659,7 @@ async function saveCV(redirect = false) {
     cvLoaded = true;
 
     // 🔥 CRITICAL FIX: persist CV ID
-    localStorage.setItem("lastCvId", currentCv._id);
+  
 
     setStatus("Saved ✓", "#16a34a");
 

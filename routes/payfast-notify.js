@@ -53,25 +53,26 @@ router.post("/notify", async (req, res) => {
     /* =========================
        3️⃣ NORMALISE PAYMENT DATA
     ========================= */
-    const paymentId = data.m_payment_id;
+   const paymentId = data.m_payment_id;
 const amount = Math.round(Number(data.amount_gross || 0) * 100) / 100;
 
-// ✅ SAFE, EXPLICIT PARSING
 let type = null;
 let cvId = null;
 let userId = null;
 
+const parts = paymentId.split("-");
+
 if (paymentId.startsWith("cover-letter-")) {
   type = "cover-letter";
-  const parts = paymentId.split("-");
-  cvId = parts[2];
-  userId = parts[3];
-} else if (paymentId.startsWith("cv-")) {
+  cvId = parts[2];    // ✅ correct
+  userId = parts[3];  // ✅ correct
+} 
+else if (paymentId.startsWith("cv-")) {
   type = "cv";
-  const parts = paymentId.split("-");
   cvId = parts[1];
   userId = parts[2];
-} else {
+} 
+else {
   console.error("❌ Unknown paymentId format:", paymentId);
   return res.status(400).send("Invalid payment ID");
 }

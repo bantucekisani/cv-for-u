@@ -126,20 +126,17 @@ if (paymentId.startsWith("cover-letter-")) {
   /* ==================================================
    COVER LETTER PURCHASE — R25 (IDENTICAL TO CV FLOW)
 ================================================== */
-if (type === "cover-letter" && amount === 25) {
-  await CV.findByIdAndUpdate(
-    cvId,
-    {
-      $inc: { coverLettersRemaining: 1 }
-    },
-    { new: true }
-  );
+if (type === "cover-letter") {
+  await CV.findByIdAndUpdate(cvId, {
+    $set: { isPaid: true },
+    $inc: {
+      coverLettersRemaining: 1
+    }
+  });
 
   console.log("✅ Cover letter credit applied (R25)");
 }
-
-
-    
+   
 
     return res.status(200).send("OK");
 

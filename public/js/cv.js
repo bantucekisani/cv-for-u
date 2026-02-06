@@ -177,8 +177,31 @@ async function callAI(url, body) {
 document.addEventListener("DOMContentLoaded", () => {
   console.log("CV JS LOADED");
 
+  /* ======================================
+     🔁 HANDLE PAYFAST RETURN (CRITICAL)
+  ====================================== */
 
- 
+  const forceReloadCv = localStorage.getItem("forceReloadCv");
+
+  if (forceReloadCv) {
+    console.log("🔁 Reloading CV after payment:", forceReloadCv);
+    localStorage.removeItem("forceReloadCv");
+    loadCV(forceReloadCv);
+  }
+
+  // 🟢 OPTIMISTIC COVER LETTER CREDIT (R25 FIX)
+  const coverJustPaid = localStorage.getItem("coverJustPaid");
+
+  if (coverJustPaid === "1") {
+    console.log("🟢 Applying optimistic cover letter credit");
+
+    currentCv.coverLettersRemaining =
+      Number(currentCv.coverLettersRemaining || 0) + 1;
+
+    updateCoverLetterCounter();
+
+    localStorage.removeItem("coverJustPaid");
+  }
   
 
   // 🔁 RESTORE COVER LETTER AFTER PAYFAST REDIRECT

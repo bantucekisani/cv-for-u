@@ -16,23 +16,30 @@
   <p>Redirecting you back to your CV…</p>
 
   <script>
-    (function () {
-      console.log("✅ PAYMENT SUCCESS");
+  (function () {
+    console.log("✅ PAYMENT SUCCESS");
 
-      const params = new URLSearchParams(window.location.search);
-      const cvId = params.get("cv");
+    const params = new URLSearchParams(window.location.search);
+    const cvId = params.get("cv");
+    const type = params.get("type"); // 🔥 REQUIRED
 
-      if (!cvId) {
-        window.location.replace("dashboard.html");
-        return;
-      }
+    if (!cvId) {
+      window.location.replace("dashboard.html");
+      return;
+    }
 
-      // 🔥 EXACT SAME BEHAVIOUR AS R40
-      localStorage.setItem("forceReloadCv", cvId);
+    // 🔥 COVER LETTER FLAG (R25 FIX)
+    if (type === "cover-letter") {
+      localStorage.setItem("coverJustPaid", "1");
+    }
 
-      window.location.replace(`create-cv.html?id=${cvId}`);
-    })();
-  </script>
+    // 🔁 FORCE CV RELOAD (R40 + R25)
+    localStorage.setItem("forceReloadCv", cvId);
+
+    window.location.replace(`create-cv.html?id=${cvId}`);
+  })();
+</script>
+
 
 </body>
 </html>

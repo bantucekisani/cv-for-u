@@ -125,8 +125,11 @@ router.post("/cv/:id", auth, async (req, res) => {
 ====================================================== */
 router.get("/cover-letter/:id", auth, async (req, res) => {
   try {
+    const cvId = req.params.id;
+
+    // 🔁 ALWAYS RELOAD FRESH STATE
     let cv = await CV.findOne({
-      _id: req.params.id,
+      _id: cvId,
       userId: req.user.id
     });
 
@@ -134,54 +137,65 @@ router.get("/cover-letter/:id", auth, async (req, res) => {
       return res.status(404).send("Cover letter not found");
     }
 
-    // 🔥 IPN grace retry (PayFast delay)
     const now = Date.now();
 
-if ((cv.coverLettersRemaining || 0) <= 0) {
-  if (
-    cv.pendingCoverUnlock &&
-    now - (cv.pendingCoverUnlockAt || 0) < 2 * 60 * 1000 // 2 min grace
-  ) {
-    console.log("⏳ Allowing cover letter via grace period");
-  } else {
-    return res.status(402).send("Cover letter payment required");
-  }
-}
+    let allowDownload = false;
 
+    // ✅ NORMAL CREDIT
+    if ((cv.coverLettersRemaining || 0) > 0) {
+      allowDownload = true;
 
-    console.log("📄 Cover letter credits before:", cv.coverLettersRemaining);
+      await CV.findByIdAndUpdate(cvId, {
+        $inc: { coverLettersRemaining: -1 }
+      });
+    }
 
-    const lines = cv.coverLetter.split("\n");
+    // ✅ GRACE UNLOCK (ONE-TIME)
+    else if (
+      cv.pendingCoverUnlock === true &&
+      now - (cv.pendingCoverUnlockAt || 0) < 5 * 60 * 1000
+    ) {
+      allowDownload = true;
+
+      await CV.findByIdAndUpdate(cvId, {
+        $unset: {
+          pendingCoverUnlock: "",
+          pendingCoverUnlockAt: ""
+        }
+      });
+    }
+
+    // ❌ BLOCK
+    if (!allowDownload) {
+      return res.status(402).send("Cover letter payment required");
+    }
+
+    // 🔁 FETCH AGAIN (FINAL STATE)
+    cv = await CV.findById(cvId);
 
     const html = `
       <div class="cover-letter">
-        <div class="address">
-          ${lines.slice(0, 7).map(l => `<p>${l}</p>`).join("")}
-        </div>
-        <div class="body">
-          ${lines.slice(7).map(l => `<p>${l}</p>`).join("")}
-        </div>
+        ${cv.coverLetter
+          .split("\n")
+          .map(l => `<p>${l || "&nbsp;"}</p>`)
+          .join("")}
       </div>
     `;
 
     const pdf = await renderPdf(html, coverCss);
-
-    await CV.updateOne(
-      { _id: cv._id },
-      { $inc: { coverLettersRemaining: -1 } }
-    );
 
     res.set({
       "Content-Type": "application/pdf",
       "Content-Disposition": "attachment; filename=Cover_Letter.pdf"
     });
 
-    res.send(pdf);
+    return res.send(pdf);
 
   } catch (err) {
     console.error("❌ COVER LETTER PDF ERROR:", err);
-    res.status(500).send("Cover letter PDF failed");
+    return res.status(500).send("Cover letter PDF failed");
   }
 });
+
 
 module.exports = router;

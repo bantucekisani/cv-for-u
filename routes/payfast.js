@@ -24,8 +24,6 @@ router.post("/create", auth, async (req, res) => {
     /* ============================
        2️⃣ CV OWNERSHIP CHECK
     ============================ */
-    let cv = null;
-
     if (!cvId) {
       return res.status(400).json({
         success: false,
@@ -33,7 +31,7 @@ router.post("/create", auth, async (req, res) => {
       });
     }
 
-    cv = await CV.findOne({
+    const cv = await CV.findOne({
       _id: cvId,
       userId: req.user.id
     });
@@ -50,13 +48,17 @@ router.post("/create", auth, async (req, res) => {
        (NEVER TRUST FRONTEND)
     ============================ */
     const PRICES = {
-      cv: 40.0,            // R40 → 4 CV downloads + 1 cover letter
-      "cover-letter": 25.0 // R25 → 1 cover letter
+      cv: 40.0,             // R40 → 4 CV downloads + 1 cover letter
+      "cover-letter": 25.0  // R25 → 1 cover letter
     };
 
     const amount = PRICES[type];
 
-    
+    /* ============================
+       4️⃣ PUBLIC URL (CRITICAL)
+    ============================ */
+    const PUBLIC_URL =
+      process.env.PUBLIC_URL || "https://cv-for-u.onrender.com";
 
     /* ============================
        5️⃣ PAYMENT METADATA
@@ -65,7 +67,6 @@ router.post("/create", auth, async (req, res) => {
       type === "cv" ? "CV Unlock" : "AI Cover Letter";
 
     // 🔑 UNIQUE PAYMENT ID (USED BY IPN)
-    // Formats:
     // cv-<cvId>-<userId>-<timestamp>
     // cover-letter-<cvId>-<userId>-<timestamp>
     const paymentId = `${type}-${cvId}-${req.user.id}-${Date.now()}`;
@@ -73,8 +74,11 @@ router.post("/create", auth, async (req, res) => {
     const returnUrl =
       `${PUBLIC_URL}/payment-success.html?type=${type}&cv=${cvId}`;
 
-    const cancelUrl = `${PUBLIC_URL}/payment-cancel.html`;
-    const notifyUrl = `${PUBLIC_URL}/api/payfast/notify`;
+    const cancelUrl =
+      `${PUBLIC_URL}/payment-cancel.html`;
+
+    const notifyUrl =
+      `${PUBLIC_URL}/api/payfast/notify`;
 
     /* ============================
        6️⃣ PAYFAST PAYLOAD
@@ -94,7 +98,7 @@ router.post("/create", auth, async (req, res) => {
 
     /* ============================
        7️⃣ PAYFAST GRACE UNLOCK
-       (CRITICAL – STOPS LOOP)
+       (OPTIONAL BUT SAFE)
     ============================ */
     if (type === "cover-letter") {
       await CV.findByIdAndUpdate(cvId, {
@@ -108,7 +112,7 @@ router.post("/create", auth, async (req, res) => {
     }
 
     /* ============================
-       8️⃣ REDIRECT URL
+       8️⃣ REDIRECT TO PAYFAST
     ============================ */
     const query = new URLSearchParams(paymentData).toString();
 

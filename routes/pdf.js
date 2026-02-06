@@ -125,11 +125,8 @@ router.post("/cv/:id", auth, async (req, res) => {
 ====================================================== */
 router.get("/cover-letter/:id", auth, async (req, res) => {
   try {
-    const cvId = req.params.id;
-
-    // 🔁 ALWAYS RELOAD FRESH STATE
-    let cv = await CV.findOne({
-      _id: cvId,
+    const cv = await CV.findOne({
+      _id: req.params.id,
       userId: req.user.id
     });
 
@@ -137,41 +134,16 @@ router.get("/cover-letter/:id", auth, async (req, res) => {
       return res.status(404).send("Cover letter not found");
     }
 
-    const now = Date.now();
-
-    let allowDownload = false;
-
-    // ✅ NORMAL CREDIT
-    if ((cv.coverLettersRemaining || 0) > 0) {
-      allowDownload = true;
-
-      await CV.findByIdAndUpdate(cvId, {
-        $inc: { coverLettersRemaining: -1 }
-      });
-    }
-
-    // ✅ GRACE UNLOCK (ONE-TIME)
-    else if (
-      cv.pendingCoverUnlock === true &&
-      now - (cv.pendingCoverUnlockAt || 0) < 5 * 60 * 1000
-    ) {
-      allowDownload = true;
-
-      await CV.findByIdAndUpdate(cvId, {
-        $unset: {
-          pendingCoverUnlock: "",
-          pendingCoverUnlockAt: ""
-        }
-      });
-    }
-
-    // ❌ BLOCK
-    if (!allowDownload) {
+    // ✅ EXACT SAME PATTERN AS CV
+    if ((cv.coverLettersRemaining || 0) <= 0) {
       return res.status(402).send("Cover letter payment required");
     }
 
-    // 🔁 FETCH AGAIN (FINAL STATE)
-    cv = await CV.findById(cvId);
+    // 🔥 CONSUME CREDIT FIRST
+    await CV.updateOne(
+      { _id: cv._id },
+      { $inc: { coverLettersRemaining: -1 } }
+    );
 
     const html = `
       <div class="cover-letter">
@@ -189,11 +161,11 @@ router.get("/cover-letter/:id", auth, async (req, res) => {
       "Content-Disposition": "attachment; filename=Cover_Letter.pdf"
     });
 
-    return res.send(pdf);
+    res.send(pdf);
 
   } catch (err) {
     console.error("❌ COVER LETTER PDF ERROR:", err);
-    return res.status(500).send("Cover letter PDF failed");
+    res.status(500).send("Cover letter PDF failed");
   }
 });
 

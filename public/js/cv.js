@@ -925,13 +925,11 @@ document.getElementById("downloadCoverPdf")
 
     disableBtn("downloadCoverPdf", "Downloading…");
 
-    const url = `${window.API_BASE}/api/pdf/cover-letter/${currentCv._id}`;
+    const res = await fetch(
+      `${window.API_BASE}/api/pdf/cover-letter/${currentCv._id}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
 
-    const res = await fetch(url, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-
-    // 💳 PAYMENT REQUIRED → GO PAY (ONCE)
     if (res.status === 402) {
       enableBtn("downloadCoverPdf", "Pay to download Cover Letter");
       window.location.href =
@@ -945,20 +943,17 @@ document.getElementById("downloadCoverPdf")
       return;
     }
 
-    // ✅ SUCCESS
     const blob = await res.blob();
-    const fileUrl = URL.createObjectURL(blob);
+    const url = URL.createObjectURL(blob);
 
     const a = document.createElement("a");
-    a.href = fileUrl;
+    a.href = url;
     a.download = "Cover_Letter.pdf";
     a.click();
 
-    URL.revokeObjectURL(fileUrl);
+    URL.revokeObjectURL(url);
 
-    // 🔁 Refresh CV state (credits update)
     await loadCV(currentCv._id);
-
     enableBtn("downloadCoverPdf", "Download Cover Letter");
   });
 

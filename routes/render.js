@@ -1,7 +1,8 @@
 // routes/render.js
 const express = require("express");
 const router = express.Router();
-const renderCvHTML = require("../utils/renderCvHTML");
+const renderCvHTML = require("../utils/renderTemplate");
+
 
 router.post("/render", (req, res) => {
   try {

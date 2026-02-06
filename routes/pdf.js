@@ -10,7 +10,8 @@ const path = require("path");
 
 const CV = require("../models/Cv");
 const auth = require("../middleware/auth");
-const renderCvHTML = require("../utils/renderCvHTML");
+const renderCvHTML = require("../utils/renderTemplate");
+
 
 /* ======================================================
    LOAD SAME CSS AS PREVIEW
@@ -43,19 +44,17 @@ async function renderPdf(html, css) {
   const browser = await puppeteer.launch({
     args: chromium.args,
     executablePath: await chromium.executablePath(),
-    headless: chromium.headless
+    headless: chromium.headless,
   });
 
   const page = await browser.newPage();
 
-  // ✅ LOCK VIEWPORT TO PREVIEW SIZE
   await page.setViewport({
     width: 1200,
     height: 1697,
-    deviceScaleFactor: 1
+    deviceScaleFactor: 1,
   });
 
-  // ✅ FORCE SCREEN STYLES (KEY FIX)
   await page.emulateMediaType("screen");
 
   await page.setContent(
@@ -78,7 +77,7 @@ async function renderPdf(html, css) {
   const pdf = await page.pdf({
     format: "A4",
     printBackground: true,
-    margin: { top: 0, right: 0, bottom: 0, left: 0 }
+    margin: { top: 0, right: 0, bottom: 0, left: 0 },
   });
 
   await browser.close();

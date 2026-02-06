@@ -101,15 +101,20 @@ router.post("/notify", async (req, res) => {
        COVER LETTER — R25
     ================================================== */
     if (type === "cover-letter" && amount === 25) {
-      const cvId = parts[1];
+  const cvId = parts[1];
 
-      await CV.findByIdAndUpdate(cvId, {
-        $inc: { coverLettersRemaining: 1 }
-      });
+  await CV.findByIdAndUpdate(
+    cvId,
+    {
+      $setOnInsert: { coverLettersRemaining: 0 },
+      $inc: { coverLettersRemaining: 1 }
+    },
+    { upsert: false }
+  );
 
-      payment.cvId = cvId;
-      await payment.save();
-    }
+  payment.cvId = cvId;
+  await payment.save();
+}
 
     return res.status(200).send("OK");
 

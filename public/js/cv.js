@@ -930,46 +930,19 @@ document.getElementById("downloadCoverPdf")
       { headers: { Authorization: `Bearer ${token}` } }
     );
 
-    /* ======================================
-       🔐 PAYMENT REQUIRED (402)
-       – Grace retry after successful payment
-    ====================================== */
     if (res.status === 402) {
-      const justPaid = localStorage.getItem("coverJustPaid");
-
-      // 🟢 ONE-TIME GRACE AFTER PAYFAST RETURN
-      if (justPaid === "1") {
-        console.log("🟢 Grace retry after cover-letter payment");
-
-        // consume flag
-        localStorage.removeItem("coverJustPaid");
-
-        // reload CV so new credit is visible
-        await loadCV(currentCv._id);
-
-        enableBtn("downloadCoverPdf", "Download Cover Letter");
-        return;
-      }
-
-      // ❌ NOT PAID → GO TO PAY PAGE
       enableBtn("downloadCoverPdf", "Pay to download Cover Letter");
       window.location.href =
         `pay.html?type=cover-letter&cv=${currentCv._id}`;
       return;
     }
 
-    /* ======================================
-       ❌ OTHER FAILURE
-    ====================================== */
     if (!res.ok) {
       alert("Cover letter download failed");
       enableBtn("downloadCoverPdf", "Download Cover Letter");
       return;
     }
 
-    /* ======================================
-       ✅ SUCCESS
-    ====================================== */
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
 
@@ -980,11 +953,10 @@ document.getElementById("downloadCoverPdf")
 
     URL.revokeObjectURL(url);
 
-    // refresh counters
     await loadCV(currentCv._id);
-
     enableBtn("downloadCoverPdf", "Download Cover Letter");
   });
+
 
   if (!experienceList.children.length) createExperienceBlock();
   if (!educationList.children.length) createEducationBlock();

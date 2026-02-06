@@ -134,19 +134,11 @@ router.get("/cover-letter/:id", auth, async (req, res) => {
       userId: req.user.id
     });
 
-    if (!cv) return res.status(404).send("CV not found");
-
-    if (!cv.coverLetter?.trim()) {
+    if (!cv || !cv.coverLetter) {
       return res.status(404).send("Cover letter not found");
     }
 
-    // ✅ FIRST DOWNLOAD FREE
-    if (cv.coverLettersRemaining == null) {
-      cv.coverLettersRemaining = 1;
-      await cv.save();
-    }
-
-    if (cv.coverLettersRemaining <= 0) {
+    if ((cv.coverLettersRemaining || 0) <= 0) {
       return res.status(402).send("Cover letter payment required");
     }
 
@@ -165,23 +157,24 @@ router.get("/cover-letter/:id", auth, async (req, res) => {
 
     const pdf = await renderPdf(html, coverCss);
 
-    // ✅ DECREMENT ONLY AFTER SUCCESS
     await CV.updateOne(
       { _id: cv._id },
       { $inc: { coverLettersRemaining: -1 } }
     );
 
-    res.set({
+    res.writeHead(200, {
       "Content-Type": "application/pdf",
-      "Content-Disposition": "attachment; filename=Cover_Letter.pdf"
+      "Content-Disposition": "attachment; filename=Cover_Letter.pdf",
+      "Content-Length": pdf.length
     });
 
-    res.send(pdf);
+    res.end(pdf);
 
   } catch (err) {
     console.error("❌ COVER LETTER PDF ERROR:", err);
     res.status(500).send("Cover letter PDF failed");
   }
 });
+
 
 module.exports = router;

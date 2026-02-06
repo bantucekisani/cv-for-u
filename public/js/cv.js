@@ -927,30 +927,16 @@ document.getElementById("downloadCoverPdf")
 
     const url = `${window.API_BASE}/api/pdf/cover-letter/${currentCv._id}`;
 
-    // 1️⃣ FIRST ATTEMPT
-    let res = await fetch(url, {
+    const res = await fetch(url, {
       headers: { Authorization: `Bearer ${token}` }
     });
 
-    // 💳 PAYMENT REQUIRED (possible IPN delay)
+    // 💳 PAYMENT REQUIRED → GO PAY (ONCE)
     if (res.status === 402) {
-      console.warn("⏳ Cover letter credit not ready, retrying…");
-
-      // 🔥 WAIT FOR PAYFAST IPN (2 seconds)
-      await new Promise(r => setTimeout(r, 2000));
-
-      // 2️⃣ RETRY ONCE
-      res = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      // ❌ STILL NOT READY → GO TO PAYMENT
-      if (res.status === 402) {
-        enableBtn("downloadCoverPdf", "Pay to download Cover Letter");
-        window.location.href =
-          `pay.html?type=cover-letter&cv=${currentCv._id}`;
-        return;
-      }
+      enableBtn("downloadCoverPdf", "Pay to download Cover Letter");
+      window.location.href =
+        `pay.html?type=cover-letter&cv=${currentCv._id}`;
+      return;
     }
 
     if (!res.ok) {
@@ -975,6 +961,7 @@ document.getElementById("downloadCoverPdf")
 
     enableBtn("downloadCoverPdf", "Download Cover Letter");
   });
+
 
   if (!experienceList.children.length) createExperienceBlock();
   if (!educationList.children.length) createEducationBlock();

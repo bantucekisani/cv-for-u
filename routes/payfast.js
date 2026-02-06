@@ -26,25 +26,23 @@ router.post("/create", auth, async (req, res) => {
     ============================ */
     let cv = null;
 
-    if (type === "cv" || type === "cover-letter") {
-      if (!cvId) {
-        return res.status(400).json({
-          success: false,
-          message: "CV ID required"
-        });
-      }
-
-      cv = await CV.findOne({
-        _id: cvId,
-        userId: req.user.id
+    if (!cvId) {
+      return res.status(400).json({
+        success: false,
+        message: "CV ID required"
       });
+    }
 
-      if (!cv) {
-        return res.status(404).json({
-          success: false,
-          message: "CV not found"
-        });
-      }
+    cv = await CV.findOne({
+      _id: cvId,
+      userId: req.user.id
+    });
+
+    if (!cv) {
+      return res.status(404).json({
+        success: false,
+        message: "CV not found"
+      });
     }
 
     /* ============================
@@ -52,18 +50,13 @@ router.post("/create", auth, async (req, res) => {
        (NEVER TRUST FRONTEND)
     ============================ */
     const PRICES = {
-      cv: 40.0,           // R40 → 4 downloads + 1 cover letter
+      cv: 40.0,            // R40 → 4 CV downloads + 1 cover letter
       "cover-letter": 25.0 // R25 → 1 cover letter
     };
 
     const amount = PRICES[type];
 
-    /* ============================
-       4️⃣ PUBLIC URL
-    ============================ */
-    const PUBLIC_URL =
-      process.env.PUBLIC_URL ||
-      "https://querulous-interresponsible-carleen.ngrok-free.dev";
+    
 
     /* ============================
        5️⃣ PAYMENT METADATA
@@ -72,11 +65,10 @@ router.post("/create", auth, async (req, res) => {
       type === "cv" ? "CV Unlock" : "AI Cover Letter";
 
     // 🔑 UNIQUE PAYMENT ID (USED BY IPN)
-    // examples:
-    // cv-65f123abc-1700000000000
-    // cover-letter-65f123abc-1700000000000
+    // Formats:
+    // cv-<cvId>-<userId>-<timestamp>
+    // cover-letter-<cvId>-<userId>-<timestamp>
     const paymentId = `${type}-${cvId}-${req.user.id}-${Date.now()}`;
-
 
     const returnUrl =
       `${PUBLIC_URL}/payment-success.html?type=${type}&cv=${cvId}`;
@@ -101,7 +93,22 @@ router.post("/create", auth, async (req, res) => {
     };
 
     /* ============================
-       7️⃣ REDIRECT URL
+       7️⃣ PAYFAST GRACE UNLOCK
+       (CRITICAL – STOPS LOOP)
+    ============================ */
+    if (type === "cover-letter") {
+      await CV.findByIdAndUpdate(cvId, {
+        $set: {
+          pendingCoverUnlock: true,
+          pendingCoverUnlockAt: Date.now()
+        }
+      });
+
+      console.log("⏳ Pending cover letter unlock set");
+    }
+
+    /* ============================
+       8️⃣ REDIRECT URL
     ============================ */
     const query = new URLSearchParams(paymentData).toString();
 

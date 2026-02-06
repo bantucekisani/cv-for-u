@@ -11,6 +11,12 @@ router.post("/save", auth, async (req, res) => {
   try {
     const userId = req.user.id;
     const body = req.body;
+    
+ // 🔒 Never allow autosave to touch payment fields
+    delete body.downloadsRemaining;
+    delete body.coverLettersRemaining;
+    delete body.isPaid;
+    delete body.lastPaymentId;
 
     let cv;
 
@@ -56,7 +62,10 @@ router.post("/save", auth, async (req, res) => {
     cv.summary = String(body.summary || "").trim();
 
     /* ===== COVER LETTER ===== */
-    cv.coverLetter = String(body.coverLetter || "").trim();
+   if (typeof body.coverLetter === "string" && body.coverLetter.trim()) {
+  cv.coverLetter = body.coverLetter.trim();
+}
+
 
     /* ===== ARRAYS ===== */
     cv.skills = Array.isArray(body.skills) ? body.skills : [];

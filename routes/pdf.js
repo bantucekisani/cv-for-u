@@ -135,14 +135,19 @@ router.get("/cover-letter/:id", auth, async (req, res) => {
     }
 
     // 🔥 IPN grace retry (PayFast delay)
-    if ((cv.coverLettersRemaining || 0) <= 0) {
-      await new Promise(r => setTimeout(r, 2000));
-      cv = await CV.findById(cv._id);
+    const now = Date.now();
 
-      if ((cv.coverLettersRemaining || 0) <= 0) {
-        return res.status(402).send("Cover letter payment required");
-      }
-    }
+if ((cv.coverLettersRemaining || 0) <= 0) {
+  if (
+    cv.pendingCoverUnlock &&
+    now - (cv.pendingCoverUnlockAt || 0) < 2 * 60 * 1000 // 2 min grace
+  ) {
+    console.log("⏳ Allowing cover letter via grace period");
+  } else {
+    return res.status(402).send("Cover letter payment required");
+  }
+}
+
 
     console.log("📄 Cover letter credits before:", cv.coverLettersRemaining);
 

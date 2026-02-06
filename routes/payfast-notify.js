@@ -125,12 +125,18 @@ router.post("/notify", async (req, res) => {
        COVER LETTER — R25
     ================================================== */
     if (type === "cover-letter" && amount === 25) {
-      await CV.findByIdAndUpdate(cvId, {
-        $inc: { coverLettersRemaining: 1 }
-      });
-
-      console.log("✅ Cover letter credit applied");
+  await CV.findByIdAndUpdate(cvId, {
+    $inc: { coverLettersRemaining: 1 },
+    $unset: {
+      pendingCoverUnlock: "",
+      pendingCoverUnlockAt: ""
     }
+  });
+
+  console.log("✅ Cover letter credit applied");
+}
+
+    
 
     return res.status(200).send("OK");
 

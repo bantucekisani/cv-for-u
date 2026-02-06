@@ -29,6 +29,7 @@
         window.location.replace("dashboard.html");
         return;
       }
+ localStorage.setItem("forceReloadCv", cvId);
 
       // ⏩ ALWAYS GO BACK TO THE SAME CV
       window.location.replace(`create-cv.html?id=${cvId}`);

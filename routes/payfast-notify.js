@@ -54,27 +54,28 @@ router.post("/notify", async (req, res) => {
        3️⃣ NORMALISE PAYMENT DATA
     ========================= */
     const paymentId = data.m_payment_id;
-    const amount = Math.round(Number(data.amount_gross || 0) * 100) / 100;
+const amount = Math.round(Number(data.amount_gross || 0) * 100) / 100;
 
-    // ---------------------------------------------
-    // 🔥 SAFE PARSING OF PAYMENT ID
-    // paymentId formats:
-    // cv-<cvId>-<userId>-<timestamp>
-    // cover-letter-<cvId>-<userId>-<timestamp>
-    // ---------------------------------------------
-    const parts = paymentId.split("-");
+// ✅ SAFE, EXPLICIT PARSING
+let type = null;
+let cvId = null;
+let userId = null;
 
-    let type, cvId, userId;
+if (paymentId.startsWith("cover-letter-")) {
+  type = "cover-letter";
+  const parts = paymentId.split("-");
+  cvId = parts[2];
+  userId = parts[3];
+} else if (paymentId.startsWith("cv-")) {
+  type = "cv";
+  const parts = paymentId.split("-");
+  cvId = parts[1];
+  userId = parts[2];
+} else {
+  console.error("❌ Unknown paymentId format:", paymentId);
+  return res.status(400).send("Invalid payment ID");
+}
 
-    if (parts[0] === "cover" && parts[1] === "letter") {
-      type = "cover-letter";
-      cvId = parts[2];
-      userId = parts[3];
-    } else {
-      type = parts[0]; // "cv"
-      cvId = parts[1];
-      userId = parts[2];
-    }
 
     console.log("💳 APPLYING PAYMENT:", {
       paymentId,

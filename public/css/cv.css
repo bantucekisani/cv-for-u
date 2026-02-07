@@ -1812,19 +1812,15 @@ body.pdf-mode .cv-preview {
     left: 12px;
     right: 12px;
     z-index: 999;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
   }
 
-  /* prevent button covering content */
   body {
-    padding-bottom: 80px;
+    padding-bottom: 90px; /* prevent overlap */
   }
 }
-.secondary-btn {
-  background: #2563eb;
-  opacity: 0.95;
-}
 
-.secondary-btn:hover {
-  opacity: 1;
+.cover-btn {
+  width: 100%;
+  background: #2563eb;
+  opacity: 1 !important;
 }

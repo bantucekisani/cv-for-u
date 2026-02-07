@@ -1,11 +1,14 @@
 const express = require("express");
 const axios = require("axios");
 const router = express.Router();
+
 const CV = require("../models/Cv");
 const Payment = require("../models/Payment");
+const auth = require("../middleware/auth");
 
 /* ======================================================
    PAYFAST IPN NOTIFY
+   POST /api/payfast/notify
 ====================================================== */
 router.post("/notify", async (req, res) => {
   try {
@@ -13,9 +16,9 @@ router.post("/notify", async (req, res) => {
 
     const rawBody = req.body.toString();
 
-    // -----------------------------
-    // Parse PayFast payload
-    // -----------------------------
+    /* -----------------------------
+       Parse PayFast payload
+    ----------------------------- */
     const data = Object.fromEntries(
       rawBody.split("&").map(pair => {
         const [k, v] = pair.split("=");
@@ -53,30 +56,28 @@ router.post("/notify", async (req, res) => {
     /* =========================
        3️⃣ NORMALISE PAYMENT DATA
     ========================= */
-   const paymentId = data.m_payment_id;
-const amount = Math.round(Number(data.amount_gross || 0) * 100) / 100;
+    const paymentId = data.m_payment_id;
+    const amount =
+      Math.round(Number(data.amount_gross || 0) * 100) / 100;
 
-let type = null;
-let cvId = null;
-let userId = null;
+    let type = null;
+    let cvId = null;
+    let userId = null;
 
-const parts = paymentId.split("-");
+    const parts = paymentId.split("-");
 
-if (paymentId.startsWith("cover-letter-")) {
-  type = "cover-letter";
-  cvId = parts[2];    // ✅ correct
-  userId = parts[3];  // ✅ correct
-} 
-else if (paymentId.startsWith("cv-")) {
-  type = "cv";
-  cvId = parts[1];
-  userId = parts[2];
-} 
-else {
-  console.error("❌ Unknown paymentId format:", paymentId);
-  return res.status(400).send("Invalid payment ID");
-}
-
+    if (paymentId.startsWith("cover-letter-")) {
+      type = "cover-letter";
+      cvId = parts[2];
+      userId = parts[3];
+    } else if (paymentId.startsWith("cv-")) {
+      type = "cv";
+      cvId = parts[1];
+      userId = parts[2];
+    } else {
+      console.error("❌ Unknown paymentId format:", paymentId);
+      return res.status(400).send("Invalid payment ID");
+    }
 
     console.log("💳 APPLYING PAYMENT:", {
       paymentId,
@@ -87,26 +88,34 @@ else {
     });
 
     /* =========================
-       4️⃣ IDEMPOTENCY CHECK
+       4️⃣ IDEMPOTENCY CHECK (RENDER SAFE)
     ========================= */
-    const existing = await Payment.findOne({ paymentId });
-    if (existing) {
-      console.warn("⚠️ Payment already processed:", paymentId);
-      return res.status(200).send("Already processed");
+    if (Payment && typeof Payment.findOne === "function") {
+      const existing = await Payment.findOne({ paymentId });
+      if (existing) {
+        console.warn("⚠️ Payment already processed:", paymentId);
+        return res.status(200).send("Already processed");
+      }
+    } else {
+      console.error("❌ Payment model not ready — skipping idempotency");
     }
 
     /* =========================
        5️⃣ SAVE PAYMENT RECORD
     ========================= */
-    const payment = await Payment.create({
-      paymentId,
-      userId,
-      cvId,
-      provider: "payfast",
-      amount,
-      status: "COMPLETE",
-      type
-    });
+    try {
+      await Payment.create({
+        paymentId,
+        userId,
+        cvId,
+        provider: "payfast",
+        amount,
+        status: "COMPLETE",
+        type
+      });
+    } catch (err) {
+      console.error("⚠️ Payment save failed (continuing):", err.message);
+    }
 
     /* ==================================================
        CV PURCHASE — R40
@@ -123,21 +132,17 @@ else {
       console.log("✅ CV credits applied");
     }
 
-    
-  /* ==================================================
-   COVER LETTER PURCHASE — R25 (IDENTICAL TO CV FLOW)
-================================================== */
-if (type === "cover-letter") {
-  await CV.findByIdAndUpdate(cvId, {
-    $set: { isPaid: true },
-    $inc: {
-      coverLettersRemaining: 1
-    }
-  });
+    /* ==================================================
+       COVER LETTER PURCHASE — R25
+    ================================================== */
+    if (type === "cover-letter" && amount === 25) {
+      await CV.findByIdAndUpdate(cvId, {
+        $set: { isPaid: true },
+        $inc: { coverLettersRemaining: 1 }
+      });
 
-  console.log("✅ Cover letter credit applied (R25)");
-}
-   
+      console.log("✅ Cover letter credit applied (R25)");
+    }
 
     return res.status(200).send("OK");
 
@@ -146,8 +151,9 @@ if (type === "cover-letter") {
     return res.status(500).send("Server error");
   }
 });
+
 /* ======================================================
-   CONFIRM COVER LETTER PAYMENT (SERVER-SIDE)
+   CONFIRM COVER LETTER PAYMENT (SERVER AUTHORITATIVE)
    GET /api/payfast/confirm-cover/:cvId
 ====================================================== */
 router.get("/confirm-cover/:cvId", auth, async (req, res) => {
@@ -161,7 +167,6 @@ router.get("/confirm-cover/:cvId", auth, async (req, res) => {
       return res.status(404).json({ success: false });
     }
 
-    // 🔥 IPN already applied credit — just confirm
     if ((cv.coverLettersRemaining || 0) > 0) {
       return res.json({ success: true });
     }

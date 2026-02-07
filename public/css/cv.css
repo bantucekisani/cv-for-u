@@ -1805,3 +1805,18 @@ body.pdf-mode .cv-preview {
   box-shadow: none;
   border-radius: 0;
 }
+@media (max-width: 768px) {
+  .ai-cover-btn {
+    position: fixed;
+    bottom: 12px;
+    left: 12px;
+    right: 12px;
+    z-index: 999;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+  }
+
+  /* prevent button covering content */
+  body {
+    padding-bottom: 80px;
+  }
+}

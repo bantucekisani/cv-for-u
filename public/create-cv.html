@@ -62,14 +62,16 @@
 
   <!-- TOP BAR -->
   <header class="topbar">
-    <div class="topbar-left">
-      <img src="images/logo.png" class="logo" alt="CV for U logo">
-      <span class="app-name"></span>
-    </div>
-    <div class="topbar">
-      <a href="dashboard.html" class="top-link">← Back</a>
-    </div>
-  </header>
+  <div class="topbar-left">
+    <img src="images/logo.png" class="logo" alt="CV for U logo">
+    <span class="app-name"></span>
+  </div>
+
+  <div class="topbar-right">
+    <a href="dashboard.html" class="top-link">← Back</a>
+  </div>
+</header>
+
 
   <!-- AI FULL BUILDER MODAL -->
   <div class="ai-modal-bg" id="aiModal">
@@ -221,7 +223,7 @@
   <option value="templateC">Template C – Corporate</option>
   <option value="templateB">Template B – Minimal Grey</option>
 </select>
->
+
 
         <label>Color:</label>
         <select id="colorSelect">
@@ -292,21 +294,30 @@
   <div id="previewReferences"></div>
 </section>
 
-        </section>
-<button
-  type="button"
-  id="coverLetterBtn"
-  class="primary-btn ai-cover-btn"
->
-  📝 Generate Cover Letter with AI
-</button>
+        </section> <!-- END cv-main -->
+      </div> <!-- END cvPreview -->
+    </section> <!-- END cv-preview-wrapper -->
+  </main> <!-- END cv-layout -->
 
-      </div>
-      
+   
+
+
+   <!-- FLOATING AI COVER LETTER CTA -->
+<div class="ai-cover-cta">
+  <button
+    type="button"
+    id="coverLetterBtn"
+    class="primary-btn ai-cover-btn"
+  >
+    📝 Generate Cover Letter with AI
+  </button>
+</div>
+
 
 <!-- COVER LETTER MODAL -->
-<div id="coverLetterModal" class="ai-modal">
-  <div class="ai-modal-content">
+<div class="ai-modal-bg" id="coverLetterModal">
+  <div class="ai-modal">
+
     <span id="coverCloseBtn" class="ai-close">&times;</span>
 
     <h2>AI Cover Letter Builder</h2>
@@ -330,8 +341,7 @@
   </div>
 </div>
 
-    </section>
-  </main>
+   
 
   <!-- PDF LIBS -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>

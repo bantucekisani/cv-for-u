@@ -146,5 +146,32 @@ if (type === "cover-letter") {
     return res.status(500).send("Server error");
   }
 });
+/* ======================================================
+   CONFIRM COVER LETTER PAYMENT (SERVER-SIDE)
+   GET /api/payfast/confirm-cover/:cvId
+====================================================== */
+router.get("/confirm-cover/:cvId", auth, async (req, res) => {
+  try {
+    const cv = await CV.findOne({
+      _id: req.params.cvId,
+      userId: req.user.id
+    });
+
+    if (!cv) {
+      return res.status(404).json({ success: false });
+    }
+
+    // 🔥 IPN already applied credit — just confirm
+    if ((cv.coverLettersRemaining || 0) > 0) {
+      return res.json({ success: true });
+    }
+
+    return res.status(402).json({ success: false });
+
+  } catch (err) {
+    console.error("❌ CONFIRM COVER PAYMENT ERROR:", err);
+    res.status(500).json({ success: false });
+  }
+});
 
 module.exports = router;

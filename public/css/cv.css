@@ -1849,3 +1849,31 @@ body.pdf-mode .cv-preview {
     grid-template-columns: 1fr;
   }
 }
+/* ================= PAY PAGE – MOBILE BUTTON FIX ================= */
+@media (max-width: 768px) {
+
+  .pay-container {
+    padding: 24px 20px;
+  }
+
+  .pay-container button {
+    width: 100%;
+    display: block;
+  }
+
+  /* spacing between Pay & Cancel */
+  .pay-container button + button {
+    margin-top: 16px;
+  }
+
+  /* Cancel button visual alignment */
+  .pay-container .secondary-btn {
+    background: #ffffff;
+    color: #374151;
+    border: 1px solid #d1d5db;
+  }
+
+  .pay-container .secondary-btn:hover {
+    background: #f9fafb;
+  }
+}

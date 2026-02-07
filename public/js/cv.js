@@ -190,18 +190,19 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // 🟢 OPTIMISTIC COVER LETTER CREDIT (R25 FIX)
-  const coverJustPaid = localStorage.getItem("coverJustPaid");
+ const coverJustPaid = localStorage.getItem("coverJustPaid");
 
-  if (coverJustPaid === "1") {
-    console.log("🟢 Applying optimistic cover letter credit");
+if (coverJustPaid === "1") {
+  console.log("🟢 Applying optimistic cover letter credit");
 
-    currentCv.coverLettersRemaining =
-      Number(currentCv.coverLettersRemaining || 0) + 1;
+  currentCv.coverLettersRemaining =
+    Math.max(1, Number(currentCv.coverLettersRemaining || 0));
 
-    updateCoverLetterCounter();
+  updateCoverLetterCounter();
 
-    localStorage.removeItem("coverJustPaid");
-  }
+  // 🔥 DO NOT REMOVE YET
+}
+
   
 
   // 🔁 RESTORE COVER LETTER AFTER PAYFAST REDIRECT
@@ -936,13 +937,21 @@ document.getElementById("downloadCoverPdf")
 
     disableBtn("downloadCoverPdf", "Downloading…");
 
-    const res = await fetch(
-      `${window.API_BASE}/api/pdf/cover-letter/${currentCv._id}`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+    let res;
+    try {
+      res = await fetch(
+        `${window.API_BASE}/api/pdf/cover-letter/${currentCv._id}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+    } catch (err) {
+      alert("Network error. Please try again.");
+      enableBtn("downloadCoverPdf", "Download Cover Letter");
+      return;
+    }
 
-    // 💳 PAYMENT REQUIRED
+    // 💳 PAYMENT REQUIRED → redirect to PayFast
     if (res.status === 402) {
+      enableBtn("downloadCoverPdf", "Pay to download Cover Letter");
       window.location.href =
         `pay.html?type=cover-letter&cv=${currentCv._id}`;
       return;
@@ -954,21 +963,33 @@ document.getElementById("downloadCoverPdf")
       return;
     }
 
+    // ✅ DOWNLOAD PDF
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
 
     const a = document.createElement("a");
     a.href = url;
     a.download = "Cover_Letter.pdf";
+    document.body.appendChild(a);
     a.click();
+    a.remove();
 
     URL.revokeObjectURL(url);
 
-    // 🔁 Refresh CV state (credits update)
-    await loadCV(currentCv._id);
+    /* ==================================================
+       🔥 CRITICAL FIX (RENDER SAFE)
+       Do NOT reload CV immediately if this was just paid
+    ================================================== */
+    if (!localStorage.getItem("coverJustPaid")) {
+      await loadCV(currentCv._id);
+    } else {
+      // DB will sync via IPN shortly
+      localStorage.removeItem("coverJustPaid");
+    }
 
     enableBtn("downloadCoverPdf", "Download Cover Letter");
-});
+  });
+
   if (!experienceList.children.length) createExperienceBlock();
   if (!educationList.children.length) createEducationBlock();
 });

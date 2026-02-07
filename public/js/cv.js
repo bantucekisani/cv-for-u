@@ -925,6 +925,7 @@ document.getElementById("downloadPdfBtn")
 
 
 /* ================= PDF DOWNLOAD ================= */
+/* ================= COVER LETTER PDF DOWNLOAD (CV-IDENTICAL) ================= */
 document.getElementById("downloadCoverPdf")
   ?.addEventListener("click", async () => {
 
@@ -933,23 +934,29 @@ document.getElementById("downloadCoverPdf")
       return;
     }
 
-    disableBtn("downloadCoverPdf", "Downloading…");
+    disableBtn("downloadCoverPdf", "Processing…");
 
     const res = await fetch(
       `${window.API_BASE}/api/pdf/cover-letter/${currentCv._id}`,
-      { headers: { Authorization: `Bearer ${token}` } }
+      {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
     );
 
+    // 🔥 MUST BE FIRST (IDENTICAL TO CV)
     if (res.status === 402) {
-      enableBtn("downloadCoverPdf", "Pay to download Cover Letter");
-      window.location.href =
-        `pay.html?type=cover-letter&cv=${currentCv._id}`;
+      window.location.replace(
+        `pay.html?type=cover-letter&cv=${currentCv._id}`
+      );
       return;
     }
 
     if (!res.ok) {
-      alert("Cover letter download failed");
-      enableBtn("downloadCoverPdf", "Download Cover Letter");
+      const err = await res.text();
+      console.error("COVER PDF ERROR:", err);
+      enableBtn("downloadCoverPdf", "Pay to download Cover Letter");
       return;
     }
 
@@ -962,8 +969,6 @@ document.getElementById("downloadCoverPdf")
     a.click();
 
     URL.revokeObjectURL(url);
-
-    await loadCV(currentCv._id);
     enableBtn("downloadCoverPdf", "Download Cover Letter");
   });
 

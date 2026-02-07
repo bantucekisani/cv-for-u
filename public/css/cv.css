@@ -1820,3 +1820,11 @@ body.pdf-mode .cv-preview {
     padding-bottom: 80px;
   }
 }
+.secondary-btn {
+  background: #2563eb;
+  opacity: 0.95;
+}
+
+.secondary-btn:hover {
+  opacity: 1;
+}

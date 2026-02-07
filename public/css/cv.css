@@ -949,7 +949,7 @@ button {
   .cv-layout {
     display: flex;
     flex-direction: column;
-    padding: 12px;
+    padding: 0px;
     gap: 14px;
   }
 
@@ -1039,7 +1039,7 @@ button {
   .cv-layout {
     display: flex;
     flex-direction: column;
-    padding: 12px;
+    padding: 0px;
   }
 
   .cv-form {
@@ -1823,4 +1823,29 @@ body.pdf-mode .cv-preview {
   width: 100%;
   background: #2563eb;
   opacity: 1 !important;
+}
+@media (max-width: 768px) {
+  .cv-preview-wrapper {
+    width: 100vw;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+  }
+}
+@media (max-width: 768px) {
+  .cv-preview {
+    width: 100vw;
+    max-width: 100vw;
+    min-width: 100vw;
+
+    margin: 0;
+    border-radius: 0;
+    box-shadow: none;
+    transform: none;
+  }
+
+  /* stack sidebar + main */
+  .cv-preview {
+    grid-template-columns: 1fr;
+  }
 }

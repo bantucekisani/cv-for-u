@@ -1,3 +1,5 @@
+const mongoose = require("mongoose"); // 🔥 THIS LINE IS MISSING
+
 const PaymentSchema = new mongoose.Schema(
   {
     paymentId: { type: String, unique: true }, // 🔥 ADD THIS

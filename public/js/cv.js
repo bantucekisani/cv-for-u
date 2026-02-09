@@ -595,23 +595,21 @@ if ($("coverOutput")) {
 }
 
 
-
-
 /* ================= SAVE CV ================= */
-async function saveCV() {
+async function saveCV({ silent = false } = {}) {
 
-  // 🔒 Block save if editing but not loaded yet
   if (editingId && !cvLoaded) {
     console.log("⏳ CV not loaded yet – save blocked");
     return false;
   }
 
-  // 🔒 Prevent double save
   if (isSaving) return false;
   isSaving = true;
 
-  disableBtn("saveCvBtn", "Saving…");
-  setStatus("Saving CV…", "#2563eb");
+  if (!silent) {
+    disableBtn("saveCvBtn", "Saving…");
+    setStatus("Saving CV…", "#2563eb");
+  }
 
   const payload = {
     _id: currentCv._id || null,
@@ -623,10 +621,7 @@ async function saveCV() {
     location: clean(inputLocation.value),
     summary: clean(inputSummary.value),
 
-    skills: inputSkills.value
-      .split(",")
-      .map(s => s.trim())
-      .filter(Boolean),
+    skills: inputSkills.value.split(",").map(s => s.trim()).filter(Boolean),
 
     template: templateSelect.value,
     color: colorSelect.value,
@@ -638,9 +633,7 @@ async function saveCV() {
       company: clean(b.querySelector(".exp-company").value),
       dates: clean(b.querySelector(".exp-period")?.value || ""),
       bullets: b.querySelector(".exp-bullets").value
-        .split("\n")
-        .map(x => x.trim())
-        .filter(Boolean)
+        .split("\n").map(x => x.trim()).filter(Boolean)
     })),
 
     education: [...educationList.children].map(b => ({
@@ -650,13 +643,12 @@ async function saveCV() {
       year: clean(b.querySelector(".edu-year").value)
     })),
 
-    references: refOnRequest.checked
-      ? []
-      : [...referencesList.children].map(b => ({
-          name: clean(b.querySelector(".ref-name").value),
-          role: clean(b.querySelector(".ref-role").value),
-          phone: clean(b.querySelector(".ref-phone").value)
-        }))
+    references: refOnRequest.checked ? [] :
+      [...referencesList.children].map(b => ({
+        name: clean(b.querySelector(".ref-name").value),
+        role: clean(b.querySelector(".ref-role").value),
+        phone: clean(b.querySelector(".ref-phone").value)
+      }))
   };
 
   try {
@@ -674,38 +666,36 @@ async function saveCV() {
       throw new Error("Invalid save response");
     }
 
-    // ✅ UPDATE STATE
     currentCv = data.cv;
     cvLoaded = true;
 
-    setStatus("Saved ✓", "#16a34a");
+    if (!silent) {
+      setStatus("Saved ✓", "#16a34a");
+    }
+
     return true;
 
   } catch (err) {
     console.error("❌ SAVE ERROR:", err);
-    setStatus("Save failed", "#dc2626");
+    if (!silent) {
+      setStatus("Save failed", "#dc2626");
+    }
     return false;
 
   } finally {
-    // 🔥 ABSOLUTELY REQUIRED FOR iOS
     isSaving = false;
-    enableBtn("saveCvBtn", "Save CV");
+    if (!silent) {
+      enableBtn("saveCvBtn", "Save CV");
+    }
   }
 }
 
 
 /* ================= SAVE BUTTON ================= */
 $("saveCvBtn")?.addEventListener("click", async () => {
-  const btn = $("saveCvBtn");
-
-  disableBtn("saveCvBtn", "Saving…");
-  setStatus("Saving CV…", "#2563eb");
-
-  const ok = await saveCV(true);
+  const ok = await saveCV();
 
   if (!ok) {
-    enableBtn("saveCvBtn", "Save CV");
-    setStatus("Save failed", "#dc2626");
     alert("Save failed");
   }
 });

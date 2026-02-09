@@ -598,9 +598,8 @@ if ($("coverOutput")) {
 
 
 /* ================= SAVE CV ================= */
-async function saveCV(redirect = false) {
+async function saveCV() {
 
-  
   // 🔒 Block save if editing but not loaded yet
   if (editingId && !cvLoaded) {
     console.log("⏳ CV not loaded yet – save blocked");
@@ -611,6 +610,7 @@ async function saveCV(redirect = false) {
   if (isSaving) return false;
   isSaving = true;
 
+  disableBtn("saveCvBtn", "Saving…");
   setStatus("Saving CV…", "#2563eb");
 
   const payload = {
@@ -633,19 +633,15 @@ async function saveCV(redirect = false) {
 
     photo: photoData || currentCv.photo || null,
 
-   experience: [...experienceList.children].map(b => ({
-  title: clean(b.querySelector(".exp-title").value),
-  company: clean(b.querySelector(".exp-company").value),
-
-  // ✅ MATCHES SCHEMA
-  dates: clean(b.querySelector(".exp-period")?.value || ""),
-
-  bullets: b.querySelector(".exp-bullets").value
-    .split("\n")
-    .map(x => x.trim())
-    .filter(Boolean)
-})),
-
+    experience: [...experienceList.children].map(b => ({
+      title: clean(b.querySelector(".exp-title").value),
+      company: clean(b.querySelector(".exp-company").value),
+      dates: clean(b.querySelector(".exp-period")?.value || ""),
+      bullets: b.querySelector(".exp-bullets").value
+        .split("\n")
+        .map(x => x.trim())
+        .filter(Boolean)
+    })),
 
     education: [...educationList.children].map(b => ({
       qualification: clean(b.querySelector(".edu-qualification").value),
@@ -674,7 +670,7 @@ async function saveCV(redirect = false) {
     });
 
     const data = await safeJson(res);
-    if (!data || !data.success || !data.cv) {
+    if (!data?.success || !data.cv) {
       throw new Error("Invalid save response");
     }
 
@@ -682,15 +678,7 @@ async function saveCV(redirect = false) {
     currentCv = data.cv;
     cvLoaded = true;
 
-    // 🔥 CRITICAL FIX: persist CV ID
-  
-
     setStatus("Saved ✓", "#16a34a");
-
-    if (redirect) {
-      window.location.href = "dashboard.html";
-    }
-
     return true;
 
   } catch (err) {
@@ -699,9 +687,12 @@ async function saveCV(redirect = false) {
     return false;
 
   } finally {
+    // 🔥 ABSOLUTELY REQUIRED FOR iOS
     isSaving = false;
+    enableBtn("saveCvBtn", "Save CV");
   }
 }
+
 
 /* ================= SAVE BUTTON ================= */
 $("saveCvBtn")?.addEventListener("click", async () => {

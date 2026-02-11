@@ -5,7 +5,7 @@ module.exports = async function connectDB() {
     await mongoose.connect(process.env.MONGO_URI);
     console.log("✅ MongoDB connected");
   } catch (err) {
-    console.error("❌ Mongo error", err.message);
-    process.exit(1);
+    console.error("❌ MongoDB connection failed:", err.message);
+    // ❗ DO NOT exit the process on Render
   }
 };

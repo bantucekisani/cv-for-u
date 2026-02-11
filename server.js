@@ -59,10 +59,6 @@ app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: false, limit: "50mb" }));
 
 
-/* =====================================================
-   DATABASE
-===================================================== */
-connectDB();
 
 /* =====================================================
    STATIC FRONTEND
@@ -94,10 +90,17 @@ app.get("/health", (req, res) => {
 });
 
 /* =====================================================
-   START SERVER
+   START SERVER (RENDER-SAFE)
 ===================================================== */
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, "0.0.0.0", () => {
+app.listen(PORT, "0.0.0.0", async () => {
   console.log(`🚀 Server running on port ${PORT}`);
+
+  try {
+    await connectDB();
+    console.log("✅ Database connected");
+  } catch (err) {
+    console.error("❌ Database connection failed:", err.message);
+  }
 });

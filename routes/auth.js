@@ -18,7 +18,6 @@ router.post("/signup", async (req, res) => {
       });
     }
 
-    // 🔒 Normalize email
     email = email.toLowerCase().trim();
 
     const exists = await User.findOne({ email });
@@ -35,18 +34,23 @@ router.post("/signup", async (req, res) => {
       fullName: fullName.trim(),
       email,
       password: hashedPassword,
-      role: "user",   // 🔒 NEVER accept role from frontend
+      role: "user",
       plan: "free"
     });
 
     const token = jwt.sign(
-      {
-        id: user._id,
-        role: user.role
-      },
+      { id: user._id, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
+
+    // 🔥 STORE TOKEN IN SECURE COOKIE
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "None",
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
 
     res.status(201).json({
       success: true,
@@ -56,8 +60,7 @@ router.post("/signup", async (req, res) => {
         email: user.email,
         role: user.role,
         plan: user.plan
-      },
-      token
+      }
     });
 
   } catch (err) {
@@ -102,13 +105,18 @@ router.post("/login", async (req, res) => {
     }
 
     const token = jwt.sign(
-      {
-        id: user._id,
-        role: user.role
-      },
+      { id: user._id, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
+
+    // 🔥 STORE TOKEN IN SECURE COOKIE
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "None",
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
 
     res.json({
       success: true,
@@ -118,8 +126,7 @@ router.post("/login", async (req, res) => {
         email: user.email,
         role: user.role,
         plan: user.plan
-      },
-      token
+      }
     });
 
   } catch (err) {

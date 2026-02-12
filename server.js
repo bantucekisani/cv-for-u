@@ -1,5 +1,5 @@
 /* =====================================================
-   SERVER.JS — CV FOR U
+   SERVER.JS — CV FOR U (PRODUCTION SAFE)
 ===================================================== */
 
 const express = require("express");
@@ -10,41 +10,42 @@ require("dotenv").config();
 const helmet = require("helmet");
 const compression = require("compression");
 const bodyParser = require("body-parser");
+const cookieParser = require("cookie-parser");
 
 const connectDB = require("./config/db");
-
-
 
 const app = express();
 app.set("trust proxy", 1);
 
 /* =====================================================
-   SECURITY (OPTIONAL)
+   FORCE SINGLE DOMAIN (VERY IMPORTANT)
 ===================================================== */
-// app.use(helmet());
-// app.use(compression());
+app.use((req, res, next) => {
+  if (req.headers.host === "www.cvforu.co.za") {
+    return res.redirect(301, "https://cvforu.co.za" + req.url);
+  }
+  next();
+});
+
+/* =====================================================
+   SECURITY
+===================================================== */
+app.use(helmet());
+app.use(compression());
+app.use(cookieParser());
 
 /* =====================================================
    CORS
 ===================================================== */
 app.use(
   cors({
-    origin: true,
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"]
+    origin: "https://cvforu.co.za",
+    credentials: true
   })
 );
 
-// Required for local network access (Chrome)
-app.use((req, res, next) => {
-  res.setHeader("Access-Control-Allow-Private-Network", "true");
-  next();
-});
-
 /* =====================================================
-   🔥 PAYFAST RAW BODY (CRITICAL)
-   MUST be BEFORE express.urlencoded()
+   PAYFAST RAW BODY
 ===================================================== */
 app.use(
   "/api/payfast/notify",
@@ -52,16 +53,13 @@ app.use(
 );
 
 /* =====================================================
-   NORMAL BODY PARSERS
-   (ALL NON-PAYFAST ROUTES)
+   BODY PARSERS
 ===================================================== */
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: false, limit: "50mb" }));
 
-
-
 /* =====================================================
-   STATIC FRONTEND
+   STATIC
 ===================================================== */
 app.use(express.static(path.join(__dirname, "public")));
 
@@ -72,14 +70,12 @@ app.use("/api/auth", require("./routes/auth"));
 app.use("/api/cv", require("./routes/cv"));
 app.use("/api/ai", require("./routes/ai"));
 app.use("/api/pdf", require("./routes/pdf"));
-
 app.use("/api/payfast", require("./routes/payfast"));
 app.use("/api/payfast", require("./routes/payfast-notify"));
 app.use("/api/admin", require("./routes/admin"));
 
-
 /* =====================================================
-   HEALTH CHECK
+   HEALTH
 ===================================================== */
 app.get("/health", (req, res) => {
   res.json({
@@ -90,7 +86,7 @@ app.get("/health", (req, res) => {
 });
 
 /* =====================================================
-   START SERVER (RENDER-SAFE)
+   START SERVER
 ===================================================== */
 const PORT = process.env.PORT || 5000;
 

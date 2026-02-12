@@ -1,10 +1,11 @@
 console.log("💳 PAY.JS LOADED (PAYFAST MODE)");
 
 const user = JSON.parse(localStorage.getItem("user"));
-if (!user || !user.token) {
+if (!user) {
   alert("Please log in first");
   window.location.href = "login.html";
 }
+
 
 const payBtn = document.getElementById("payBtn");
 const payError = document.getElementById("payError");
@@ -22,16 +23,17 @@ payBtn?.addEventListener("click", async () => {
     }
 
     const res = await fetch(
-      `${window.API_BASE}/api/payfast/create`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${user.token}`
-        },
-        body: JSON.stringify({ cvId, type })
-      }
-    );
+  `${window.API_BASE}/api/payfast/create`,
+  {
+    method: "POST",
+    credentials: "include",   // 🔥 REQUIRED
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ cvId, type })
+  }
+);
+
 
     const data = await res.json();
 

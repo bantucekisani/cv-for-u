@@ -13,8 +13,8 @@ const API = `${window.API_BASE}/api/cv`;
 const AI_API = `${window.API_BASE}/api/ai`;
 
 /* ================= AUTH ================= */
-// just check if user exists in localStorage
-if (!getStoredUser()) logout();
+const token = getToken();
+if (!token) logout();
 
 
 /* ================= STATE ================= */
@@ -154,9 +154,9 @@ function getWordTheme() {
 async function callAI(url, body) {
   const res = await fetch(url, {
     method: "POST",
-    credentials: "include",   // 🔥 REQUIRED
     headers: {
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`
     },
     body: JSON.stringify(body)
   });
@@ -169,9 +169,8 @@ async function callAI(url, body) {
   const data = await safeJson(res);
   if (!data) return null;
 
-  return data;
+  return data; // ✅ THIS WAS MISSING
 }
-
 
 
 /* ================= DOM READY ================= */
@@ -348,7 +347,7 @@ colorSelect.onchange = applyTemplateAndColor;
 
 
 
-  
+  /* ================= DEFAULT TEMPLATE (PRO) ================= */
 
   /* ================= DEFAULT TEMPLATE (PRO) ================= */
 
@@ -508,9 +507,8 @@ async function loadCV(id) {
   setStatus("Loading CV…", "#2563eb");
 
   const res = await fetch(`${API}/${id}`, {
-  credentials: "include"
-});
- 
+    headers: { Authorization: `Bearer ${token}` }
+  }); 
   
 console.log("MY-CVS STATUS:", res.status);
 
@@ -655,14 +653,13 @@ async function saveCV({ silent = false } = {}) {
 
   try {
     const res = await fetch(`${API}/save`, {
-  method: "POST",
-  credentials: "include",   // 🔥 REQUIRED
-  headers: {
-    "Content-Type": "application/json"
-  },
-  body: JSON.stringify(payload)
-});
-
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify(payload)
+    });
 
     const data = await safeJson(res);
     if (!data?.success || !data.cv) {
@@ -836,15 +833,14 @@ $("coverGenerateBtn")?.addEventListener("click", async () => {
     $("coverOutput").value = res.letter;
 
     // 🔥 SAVE TO DB
-   await fetch(`${API}/${currentCv._id}/cover-letter`, {
-  method: "POST",
-  credentials: "include",
-  headers: {
-    "Content-Type": "application/json"
-  },
-  body: JSON.stringify({ coverLetter: res.letter })
-});
-
+    await fetch(`${API}/${currentCv._id}/cover-letter`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ coverLetter: res.letter })
+    });
 
   } catch (err) {
     alert("Cover letter AI failed");
@@ -874,11 +870,10 @@ document.getElementById("downloadPdfBtn")
       `${window.API_BASE}/api/pdf/cv/${currentCv._id}`,
       {
         method: "POST",
-        credentials: "include",
-headers: {
-  "Content-Type": "application/json"
-},
-
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
         body: JSON.stringify({ html: previewHtml })
       }
     );
@@ -925,10 +920,10 @@ document.getElementById("downloadCoverPdf")
 
     let res;
     try {
-      res = await fetch(`${window.API_BASE}/api/pdf/cover-letter/${currentCv._id}`, {
-  credentials: "include"
-});
-
+      res = await fetch(
+        `${window.API_BASE}/api/pdf/cover-letter/${currentCv._id}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
     } catch (err) {
       alert("Network error. Please try again.");
       enableBtn("downloadCoverPdf", "Download Cover Letter");

@@ -1,7 +1,7 @@
 console.log("AUTH JS LOADED");
 
 /* =====================================================
-   AUTH STORAGE HELPERS (NO TOKEN STORAGE ANYMORE)
+   AUTH STORAGE HELPERS
 ===================================================== */
 window.getStoredUser = function () {
   try {
@@ -14,11 +14,14 @@ window.getStoredUser = function () {
   }
 };
 
+window.getToken = function () {
+  const user = window.getStoredUser();
+  return user?.token || null;
+};
+
 window.logout = function () {
   localStorage.removeItem("user");
   localStorage.removeItem("lastCvId");
-
-  // optional: clear cookie by calling logout endpoint later
   window.location.href = "login.html";
 };
 
@@ -27,24 +30,28 @@ window.logout = function () {
 ===================================================== */
 document.addEventListener("DOMContentLoaded", () => {
 
-  /* ================= SIGNUP ================= */
+  // ----------------- SIGNUP -----------------
   const signupForm = document.getElementById("signupForm");
-
   if (signupForm) {
     signupForm.addEventListener("submit", async (e) => {
       e.preventDefault();
 
-      const fullName = document.getElementById("signupFullName").value.trim();
-      const email = document.getElementById("signupEmail").value.trim();
-      const password = document.getElementById("signupPassword").value.trim();
+      const fullNameEl = document.getElementById("signupFullName");
+      const emailEl = document.getElementById("signupEmail");
+      const passwordEl = document.getElementById("signupPassword");
       const errorBox = document.getElementById("signupError");
+
+      if (!fullNameEl || !emailEl || !passwordEl || !errorBox) return;
+
+      const fullName = fullNameEl.value.trim();
+      const email = emailEl.value.trim();
+      const password = passwordEl.value.trim();
 
       errorBox.textContent = "";
 
       try {
         const res = await fetch(`${window.API_BASE}/api/auth/signup`, {
           method: "POST",
-          credentials: "include",  // 🔥 REQUIRED
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ fullName, email, password })
         });
@@ -56,8 +63,8 @@ document.addEventListener("DOMContentLoaded", () => {
           return;
         }
 
-        // 🔥 SAVE USER ONLY (NO TOKEN)
-        localStorage.setItem("user", JSON.stringify(data.user));
+        const user = { ...data.user, token: data.token };
+        localStorage.setItem("user", JSON.stringify(user));
 
         window.location.href = "dashboard.html";
 
@@ -68,23 +75,26 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  /* ================= LOGIN ================= */
+  // ----------------- LOGIN -----------------
   const loginForm = document.getElementById("loginForm");
-
   if (loginForm) {
     loginForm.addEventListener("submit", async (e) => {
       e.preventDefault();
 
-      const email = document.getElementById("loginEmail").value.trim();
-      const password = document.getElementById("loginPassword").value.trim();
+      const emailEl = document.getElementById("loginEmail");
+      const passwordEl = document.getElementById("loginPassword");
       const errorBox = document.getElementById("loginError");
+
+      if (!emailEl || !passwordEl || !errorBox) return;
+
+      const email = emailEl.value.trim();
+      const password = passwordEl.value.trim();
 
       errorBox.textContent = "";
 
       try {
         const res = await fetch(`${window.API_BASE}/api/auth/login`, {
           method: "POST",
-          credentials: "include",  // 🔥 REQUIRED
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, password })
         });
@@ -96,13 +106,11 @@ document.addEventListener("DOMContentLoaded", () => {
           return;
         }
 
-        // 🔥 SAVE USER ONLY (NO TOKEN)
-        localStorage.setItem("user", JSON.stringify(data.user));
+        const user = { ...data.user, token: data.token };
+        localStorage.setItem("user", JSON.stringify(user));
 
-        if (data.user.role === "admin")
-          window.location.href = "admin.html";
-        else
-          window.location.href = "dashboard.html";
+        if (user.role === "admin") window.location.href = "admin.html";
+        else window.location.href = "dashboard.html";
 
       } catch (err) {
         console.error("LOGIN ERROR:", err);

@@ -7,12 +7,16 @@
    API BASE — DEV (PC + PHONE) / PROD READY
 ===================================================== */
 // USE GLOBAL API_BASE ONLY
-const user = JSON.parse(localStorage.getItem("user"));
+const API = `${window.API_BASE}/api/cv`;
 
-if (!user) {
+
+
+const user = JSON.parse(localStorage.getItem("user"));
+const token = user?.token;
+
+if (!token) {
   window.location.href = "login.html";
 }
-
 
 
 /* ======================================

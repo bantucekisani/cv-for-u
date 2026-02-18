@@ -658,6 +658,7 @@ async function saveCV({ silent = false } = {}) {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`
       },
+      
       body: JSON.stringify(payload)
     });
 

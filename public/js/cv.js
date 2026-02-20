@@ -652,15 +652,30 @@ async function saveCV({ silent = false } = {}) {
   };
 
   try {
-    const res = await fetch(`${API}/save`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`
-      },
-      
-      body: JSON.stringify(payload)
-    });
+
+    // 🔥 FIX 3 — TIMEOUT PROTECTION FOR IPHONE
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+
+    let res;
+
+    try {
+      res = await fetch(`${API}/save`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal
+      });
+    } catch (err) {
+      console.error("❌ SAVE TIMEOUT OR NETWORK ERROR:", err);
+      clearTimeout(timeout);
+      throw err;
+    }
+
+    clearTimeout(timeout);
 
     const data = await safeJson(res);
     if (!data?.success || !data.cv) {
@@ -678,19 +693,21 @@ async function saveCV({ silent = false } = {}) {
 
   } catch (err) {
     console.error("❌ SAVE ERROR:", err);
+
     if (!silent) {
       setStatus("Save failed", "#dc2626");
     }
+
     return false;
 
   } finally {
     isSaving = false;
+
     if (!silent) {
       enableBtn("saveCvBtn", "Save CV");
     }
   }
 }
-
 
 /* ================= SAVE BUTTON ================= */
 $("saveCvBtn")?.addEventListener("click", async () => {
@@ -862,51 +879,69 @@ document.getElementById("downloadPdfBtn")
       return;
     }
 
+    // 🔥 FORCE SAVE BEFORE DOWNLOAD
+    const saved = await saveCV({ silent: true });
+
+    if (!saved) {
+      alert("Save failed. Please try again.");
+      return;
+    }
+
     disableBtn("downloadPdfBtn", "Processing…");
 
-    const previewHtml =
-      document.getElementById("cvPreview").outerHTML;
+    let res;
 
-    const res = await fetch(
-      `${window.API_BASE}/api/pdf/cv/${currentCv._id}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ html: previewHtml })
-      }
-    );
-
-    // 🔥 MUST BE FIRST
-    if (res.status === 402) {
-      window.location.replace(
-        `pay.html?type=cv&cv=${currentCv._id}`
+    try {
+      res = await fetch(
+        `${window.API_BASE}/api/pdf/cv/${currentCv._id}`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
       );
+    } catch (err) {
+      alert("Network error. Please try again.");
+      enableBtn("downloadPdfBtn", "Download CV (PDF)");
+      return;
+    }
+
+    // 💳 PAYMENT REQUIRED
+    if (res.status === 402) {
+      enableBtn("downloadPdfBtn", "Pay to download CV");
+      window.location.href =
+        `pay.html?type=cv&cv=${currentCv._id}`;
       return;
     }
 
     if (!res.ok) {
       const err = await res.text();
       console.error("PDF ERROR:", err);
-      enableBtn("downloadPdfBtn", "Pay to download CV");
+      enableBtn("downloadPdfBtn", "Download CV (PDF)");
       return;
     }
 
+    // ✅ DOWNLOAD FILE
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
 
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "CV.pdf";
-    a.click();
+    // iPhone-safe download
+    if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+      window.location.href = url;
+    } else {
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "CV.pdf";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
 
     URL.revokeObjectURL(url);
+
     enableBtn("downloadPdfBtn", "Download CV (PDF)");
   });
-
-
 
 /* ================= COVER LETTER PDF DOWNLOAD (CV-IDENTICAL) ================= */
 document.getElementById("downloadCoverPdf")

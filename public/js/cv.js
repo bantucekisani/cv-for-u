@@ -87,22 +87,28 @@ async function safeJson(res) {
 }
 
 
-
+let photoData = null;
 let cvLoaded = false;
 
 let saveTimeout = null;
 
 function autoSave(delay = 800) {
+
   if (!cvLoaded) {
     console.warn("⛔ Autosave blocked: CV not loaded yet");
     return;
   }
-  if (!currentCv._id) {
-    console.warn("⛔ Autosave blocked: No CV ID yet");
+
+  if (!currentCv._id && editingId) {
+    console.warn("⛔ Autosave blocked: no CV ID");
     return;
   }
+
   clearTimeout(saveTimeout);
-  saveTimeout = setTimeout(() => saveCV(), delay);
+
+  saveTimeout = setTimeout(() => {
+    if (!isSaving) saveCV({ silent: true });
+  }, delay);
 }
 
 
@@ -321,10 +327,32 @@ inputPhoto.addEventListener("change", () => {
   const reader = new FileReader();
 
   reader.onload = () => {
-    photoData = reader.result;       // ✅ BASE64 STRING
-    previewPhoto.src = photoData;    // ✅ LIVE PREVIEW
+
+  const img = new Image();
+
+  img.onload = () => {
+
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+
+    const maxWidth = 500;
+    const scale = maxWidth / img.width;
+
+    canvas.width = maxWidth;
+    canvas.height = img.height * scale;
+
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+    photoData = canvas.toDataURL("image/jpeg", 0.8);
+
+    previewPhoto.src = photoData;
+
     setStatus("Photo updated ✓", "#16a34a");
   };
+
+  img.src = reader.result;
+};
+   
 
   reader.readAsDataURL(file);
 });
@@ -660,15 +688,16 @@ async function saveCV({ silent = false } = {}) {
     let res;
 
     try {
-      res = await fetch(`${API}/save`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(payload),
-        signal: controller.signal
-      });
+     res = await fetch(`${API}/save`, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`
+  },
+  body: JSON.stringify(payload),
+  signal: controller.signal,
+  keepalive: true
+});
     } catch (err) {
       console.error("❌ SAVE TIMEOUT OR NETWORK ERROR:", err);
       clearTimeout(timeout);
@@ -922,90 +951,118 @@ document.getElementById("downloadPdfBtn")
       return;
     }
 
-    // ✅ DOWNLOAD FILE
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
+    try {
 
-    // iPhone-safe download
-    if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-      window.location.href = url;
-    } else {
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "CV.pdf";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+
+      const isIOS =
+        /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+        (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+      if (isIOS) {
+        // iPhone Safari cannot handle forced downloads well
+        window.open(url, "_blank");
+      } else {
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "CV.pdf";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
+
+      // Delay revoke for Safari
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+
+    } catch (err) {
+      console.error("Download error:", err);
+      alert("Download failed");
     }
-
-    URL.revokeObjectURL(url);
 
     enableBtn("downloadPdfBtn", "Download CV (PDF)");
   });
-
 /* ================= COVER LETTER PDF DOWNLOAD (CV-IDENTICAL) ================= */
 document.getElementById("downloadCoverPdf")
-  ?.addEventListener("click", async () => {
+?.addEventListener("click", async () => {
 
-    if (!currentCv._id) {
-      alert("Please save your CV first");
-      return;
-    }
 
-    disableBtn("downloadCoverPdf", "Downloading…");
+if (!currentCv._id) {
+  alert("Please save your CV first");
+  return;
+}
 
-    let res;
-    try {
-      res = await fetch(
-        `${window.API_BASE}/api/pdf/cover-letter/${currentCv._id}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-    } catch (err) {
-      alert("Network error. Please try again.");
-      enableBtn("downloadCoverPdf", "Download Cover Letter");
-      return;
-    }
+disableBtn("downloadCoverPdf", "Downloading…");
 
-    // 💳 PAYMENT REQUIRED → redirect to PayFast
-    if (res.status === 402) {
-      enableBtn("downloadCoverPdf", "Pay to download Cover Letter");
-      window.location.href =
-        `pay.html?type=cover-letter&cv=${currentCv._id}`;
-      return;
-    }
+let res;
 
-    if (!res.ok) {
-      alert("Cover letter download failed");
-      enableBtn("downloadCoverPdf", "Download Cover Letter");
-      return;
-    }
+try {
+  res = await fetch(
+    `${window.API_BASE}/api/pdf/cover-letter/${currentCv._id}`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+} catch (err) {
+  alert("Network error. Please try again.");
+  enableBtn("downloadCoverPdf", "Download Cover Letter");
+  return;
+}
 
-    // ✅ DOWNLOAD PDF
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
+// 💳 PAYMENT REQUIRED
+if (res.status === 402) {
+  enableBtn("downloadCoverPdf", "Pay to download Cover Letter");
+  window.location.href =
+    `pay.html?type=cover-letter&cv=${currentCv._id}`;
+  return;
+}
 
+if (!res.ok) {
+  alert("Cover letter download failed");
+  enableBtn("downloadCoverPdf", "Download Cover Letter");
+  return;
+}
+
+try {
+
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+
+  const isIOS =
+    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+  if (isIOS) {
+    // Safari prefers opening PDF in new tab
+    window.open(url, "_blank");
+  } else {
     const a = document.createElement("a");
     a.href = url;
     a.download = "Cover_Letter.pdf";
     document.body.appendChild(a);
     a.click();
     a.remove();
+  }
 
-    URL.revokeObjectURL(url);
+  // Delay revoke so Safari has time to load it
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
 
-    /* ==================================================
-       🔥 CRITICAL FIX (RENDER SAFE)
-       Do NOT reload CV immediately if this was just paid
-    ================================================== */
-    if (!localStorage.getItem("coverJustPaid")) {
-      await loadCV(currentCv._id);
-    } else {
-      // DB will sync via IPN shortly
-      localStorage.removeItem("coverJustPaid");
-    }
+} catch (err) {
+  console.error("Download error:", err);
+  alert("Download failed");
+}
 
-    enableBtn("downloadCoverPdf", "Download Cover Letter");
-  });
+/* ==========================================
+   DO NOT reload CV immediately after payment
+========================================== */
+if (!localStorage.getItem("coverJustPaid")) {
+  await loadCV(currentCv._id);
+} else {
+  localStorage.removeItem("coverJustPaid");
+}
+
+enableBtn("downloadCoverPdf", "Download Cover Letter");
+
+});
+
 
   if (!experienceList.children.length) createExperienceBlock();
   if (!educationList.children.length) createEducationBlock();

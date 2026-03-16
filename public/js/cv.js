@@ -683,7 +683,7 @@ async function saveCV({ silent = false } = {}) {
 
     // 🔥 FIX 3 — TIMEOUT PROTECTION FOR IPHONE
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
+const timeout = setTimeout(() => controller.abort(), 20000);
 
     let res;
 
@@ -953,27 +953,27 @@ document.getElementById("downloadPdfBtn")
 
     try {
 
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-
       const isIOS =
-        /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-        (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+  (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 
-      if (isIOS) {
-        // iPhone Safari cannot handle forced downloads well
-        window.open(url, "_blank");
-      } else {
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "CV.pdf";
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-      }
+if (isIOS) {
+  // Safari-friendly download
+  window.location.href = `${window.API_BASE}/api/pdf/cv/${currentCv._id}?token=${token}`;
+  return;
+}
 
-      // Delay revoke for Safari
-      setTimeout(() => URL.revokeObjectURL(url), 5000);
+const blob = await res.blob();
+const url = URL.createObjectURL(blob);
+
+const a = document.createElement("a");
+a.href = url;
+a.download = "CV.pdf";
+document.body.appendChild(a);
+a.click();
+a.remove();
+
+setTimeout(() => URL.revokeObjectURL(url), 5000);
 
     } catch (err) {
       console.error("Download error:", err);

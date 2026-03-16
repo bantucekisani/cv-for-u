@@ -688,16 +688,16 @@ async function saveCV({ silent = false } = {}) {
     let res;
 
     try {
-     res = await fetch(`${API}/save`, {
+    res = await fetch(`${API}/save`, {
   method: "POST",
   headers: {
     "Content-Type": "application/json",
     Authorization: `Bearer ${token}`
   },
   body: JSON.stringify(payload),
-  signal: controller.signal,
-  keepalive: true
-});
+  signal: controller.signal
+});  
+
     } catch (err) {
       console.error("❌ SAVE TIMEOUT OR NETWORK ERROR:", err);
       clearTimeout(timeout);

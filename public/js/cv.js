@@ -908,6 +908,7 @@ document.getElementById("downloadPdfBtn")
     return;
   }
 
+  // 🔥 FORCE SAVE BEFORE DOWNLOAD
   const saved = await saveCV({ silent: true });
 
   if (!saved) {
@@ -917,15 +918,72 @@ document.getElementById("downloadPdfBtn")
 
   disableBtn("downloadPdfBtn", "Processing…");
 
-  const url =
-    `${window.API_BASE}/api/pdf/cv/${currentCv._id}?token=${token}`;
+  const isIOS =
+    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 
-  // Let browser handle everything
-  window.location.href = url;
+  // ✅ iPhone: skip fetch entirely
+  if (isIOS) {
+    window.location.href =
+      `${window.API_BASE}/api/pdf/cv/${currentCv._id}?token=${token}`;
+    enableBtn("downloadPdfBtn", "Download CV (PDF)");
+    return;
+  }
+
+  let res;
+
+  try {
+    res = await fetch(
+      `${window.API_BASE}/api/pdf/cv/${currentCv._id}`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
+  } catch (err) {
+    alert("Network error. Please try again.");
+    enableBtn("downloadPdfBtn", "Download CV (PDF)");
+    return;
+  }
+
+  // 💳 PAYMENT REQUIRED
+  if (res.status === 402) {
+    enableBtn("downloadPdfBtn", "Pay to download CV");
+    window.location.href =
+      `pay.html?type=cv&cv=${currentCv._id}`;
+    return;
+  }
+
+  if (!res.ok) {
+    const err = await res.text();
+    console.error("PDF ERROR:", err);
+    enableBtn("downloadPdfBtn", "Download CV (PDF)");
+    return;
+  }
+
+  try {
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "CV.pdf";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+
+  } catch (err) {
+    console.error("Download error:", err);
+    alert("Download failed");
+  }
 
   enableBtn("downloadPdfBtn", "Download CV (PDF)");
-
-});
+}); 
 
 
 /* ================= COVER LETTER PDF DOWNLOAD (CV-IDENTICAL) ================= */
@@ -937,13 +995,71 @@ document.getElementById("downloadCoverPdf")
     return;
   }
 
-  disableBtn("downloadCoverPdf", "Downloading…");
+  disableBtn("downloadCoverPdf", "Processing…");
 
-  const url =
-    `${window.API_BASE}/api/pdf/cover-letter/${currentCv._id}?token=${token}`;
+  const isIOS =
+    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 
-  // Navigate browser directly to the PDF
-  window.location.href = url;
+  // ✅ iPhone: skip fetch entirely
+  if (isIOS) {
+    window.location.href =
+      `${window.API_BASE}/api/pdf/cover-letter/${currentCv._id}?token=${token}`;
+    enableBtn("downloadCoverPdf", "Download Cover Letter");
+    return;
+  }
+
+  let res;
+
+  try {
+    res = await fetch(
+      `${window.API_BASE}/api/pdf/cover-letter/${currentCv._id}`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
+  } catch (err) {
+    alert("Network error. Please try again.");
+    enableBtn("downloadCoverPdf", "Download Cover Letter");
+    return;
+  }
+
+  // 💳 PAYMENT REQUIRED
+  if (res.status === 402) {
+    enableBtn("downloadCoverPdf", "Pay to download Cover Letter");
+    window.location.href =
+      `pay.html?type=cover-letter&cv=${currentCv._id}`;
+    return;
+  }
+
+  if (!res.ok) {
+    const err = await res.text();
+    console.error("COVER PDF ERROR:", err);
+    enableBtn("downloadCoverPdf", "Download Cover Letter");
+    return;
+  }
+
+  try {
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "Cover_Letter.pdf";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+
+  } catch (err) {
+    console.error("Download error:", err);
+    alert("Download failed");
+  }
 
   enableBtn("downloadCoverPdf", "Download Cover Letter");
 

@@ -901,165 +901,51 @@ $("coverGenerateBtn")?.addEventListener("click", async () => {
 
 /* ================= CV PDF DOWNLOAD ================= */
 document.getElementById("downloadPdfBtn")
-  ?.addEventListener("click", async () => {
+?.addEventListener("click", async () => {
 
-    if (!currentCv._id) {
-      alert("Please save your CV first");
-      return;
-    }
+  if (!currentCv._id) {
+    alert("Please save your CV first");
+    return;
+  }
 
-    // 🔥 FORCE SAVE BEFORE DOWNLOAD
-    const saved = await saveCV({ silent: true });
+  const saved = await saveCV({ silent: true });
 
-    if (!saved) {
-      alert("Save failed. Please try again.");
-      return;
-    }
+  if (!saved) {
+    alert("Save failed. Please try again.");
+    return;
+  }
 
-    disableBtn("downloadPdfBtn", "Processing…");
+  disableBtn("downloadPdfBtn", "Processing…");
 
-    let res;
+  const url =
+    `${window.API_BASE}/api/pdf/cv/${currentCv._id}?token=${token}`;
 
-    try {
-      res = await fetch(
-        `${window.API_BASE}/api/pdf/cv/${currentCv._id}`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
-    } catch (err) {
-      alert("Network error. Please try again.");
-      enableBtn("downloadPdfBtn", "Download CV (PDF)");
-      return;
-    }
+  // Let browser handle everything
+  window.location.href = url;
 
-    // 💳 PAYMENT REQUIRED
-    if (res.status === 402) {
-      enableBtn("downloadPdfBtn", "Pay to download CV");
-      window.location.href =
-        `pay.html?type=cv&cv=${currentCv._id}`;
-      return;
-    }
+  enableBtn("downloadPdfBtn", "Download CV (PDF)");
 
-    if (!res.ok) {
-      const err = await res.text();
-      console.error("PDF ERROR:", err);
-      enableBtn("downloadPdfBtn", "Download CV (PDF)");
-      return;
-    }
+});
 
-    try {
 
-      const isIOS =
-  /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-  (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-
-if (isIOS) {
-  // Safari-friendly download
-  window.location.href = `${window.API_BASE}/api/pdf/cv/${currentCv._id}?token=${token}`;
-  return;
-}
-
-const blob = await res.blob();
-const url = URL.createObjectURL(blob);
-
-const a = document.createElement("a");
-a.href = url;
-a.download = "CV.pdf";
-document.body.appendChild(a);
-a.click();
-a.remove();
-
-setTimeout(() => URL.revokeObjectURL(url), 5000);
-
-    } catch (err) {
-      console.error("Download error:", err);
-      alert("Download failed");
-    }
-
-    enableBtn("downloadPdfBtn", "Download CV (PDF)");
-  });
 /* ================= COVER LETTER PDF DOWNLOAD (CV-IDENTICAL) ================= */
 document.getElementById("downloadCoverPdf")
 ?.addEventListener("click", async () => {
 
-
-if (!currentCv._id) {
-  alert("Please save your CV first");
-  return;
-}
-
-disableBtn("downloadCoverPdf", "Downloading…");
-
-let res;
-
-try {
-  res = await fetch(
-    `${window.API_BASE}/api/pdf/cover-letter/${currentCv._id}`,
-    { headers: { Authorization: `Bearer ${token}` } }
-  );
-} catch (err) {
-  alert("Network error. Please try again.");
-  enableBtn("downloadCoverPdf", "Download Cover Letter");
-  return;
-}
-
-// 💳 PAYMENT REQUIRED
-if (res.status === 402) {
-  enableBtn("downloadCoverPdf", "Pay to download Cover Letter");
-  window.location.href =
-    `pay.html?type=cover-letter&cv=${currentCv._id}`;
-  return;
-}
-
-if (!res.ok) {
-  alert("Cover letter download failed");
-  enableBtn("downloadCoverPdf", "Download Cover Letter");
-  return;
-}
-
-try {
-
-  const blob = await res.blob();
-  const url = URL.createObjectURL(blob);
-
-  const isIOS =
-    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-
-  if (isIOS) {
-    // Safari prefers opening PDF in new tab
-    window.open(url, "_blank");
-  } else {
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "Cover_Letter.pdf";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
+  if (!currentCv._id) {
+    alert("Please save your CV first");
+    return;
   }
 
-  // Delay revoke so Safari has time to load it
-  setTimeout(() => URL.revokeObjectURL(url), 5000);
+  disableBtn("downloadCoverPdf", "Downloading…");
 
-} catch (err) {
-  console.error("Download error:", err);
-  alert("Download failed");
-}
+  const url =
+    `${window.API_BASE}/api/pdf/cover-letter/${currentCv._id}?token=${token}`;
 
-/* ==========================================
-   DO NOT reload CV immediately after payment
-========================================== */
-if (!localStorage.getItem("coverJustPaid")) {
-  await loadCV(currentCv._id);
-} else {
-  localStorage.removeItem("coverJustPaid");
-}
+  // Navigate browser directly to the PDF
+  window.location.href = url;
 
-enableBtn("downloadCoverPdf", "Download Cover Letter");
+  enableBtn("downloadCoverPdf", "Download Cover Letter");
 
 });
 

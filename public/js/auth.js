@@ -1,13 +1,9 @@
 console.log("AUTH JS LOADED");
 
-/* =====================================================
-   AUTH STORAGE HELPERS
-===================================================== */
 window.getStoredUser = function () {
   try {
     const raw = localStorage.getItem("user");
-    if (!raw) return null;
-    return JSON.parse(raw);
+    return raw ? JSON.parse(raw) : null;
   } catch {
     localStorage.removeItem("user");
     return null;
@@ -15,108 +11,232 @@ window.getStoredUser = function () {
 };
 
 window.getToken = function () {
-  const user = window.getStoredUser();
-  return user?.token || null;
+  return window.getStoredUser()?.token || null;
+};
+
+window.storeUserSession = function (data) {
+  const user = { ...data.user, token: data.token };
+  localStorage.setItem("user", JSON.stringify(user));
+  localStorage.setItem("token", data.token);
+  return user;
+};
+
+window.clearUserSession = function () {
+  localStorage.removeItem("user");
+  localStorage.removeItem("token");
+  localStorage.removeItem("lastCvId");
 };
 
 window.logout = function () {
-  localStorage.removeItem("user");
-  localStorage.removeItem("lastCvId");
+  window.clearUserSession();
   window.location.href = "login.html";
 };
 
-/* =====================================================
-   WAIT FOR DOM
-===================================================== */
-document.addEventListener("DOMContentLoaded", () => {
+async function postJson(url, body) {
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
 
-  // ----------------- SIGNUP -----------------
+  const data = await res.json().catch(() => ({
+    success: false,
+    message: "Unexpected server response"
+  }));
+
+  return { res, data };
+}
+
+function setMessage(element, message, type = "error") {
+  if (!element) {
+    return;
+  }
+
+  element.textContent = message || "";
+  element.classList.remove("success", "error");
+  if (message) {
+    element.classList.add(type);
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
   const signupForm = document.getElementById("signupForm");
   if (signupForm) {
     signupForm.addEventListener("submit", async (e) => {
       e.preventDefault();
 
-      const fullNameEl = document.getElementById("signupFullName");
-      const emailEl = document.getElementById("signupEmail");
-      const passwordEl = document.getElementById("signupPassword");
+      const fullName = document.getElementById("signupFullName")?.value.trim() || "";
+      const username = document.getElementById("signupUsername")?.value.trim() || "";
+      const email = document.getElementById("signupEmail")?.value.trim() || "";
+      const password = document.getElementById("signupPassword")?.value || "";
+      const confirmPassword = document.getElementById("signupConfirmPassword")?.value || "";
       const errorBox = document.getElementById("signupError");
 
-      if (!fullNameEl || !emailEl || !passwordEl || !errorBox) return;
+      setMessage(errorBox, "");
 
-      const fullName = fullNameEl.value.trim();
-      const email = emailEl.value.trim();
-      const password = passwordEl.value.trim();
-
-      errorBox.textContent = "";
+      if (password !== confirmPassword) {
+        setMessage(errorBox, "Passwords do not match");
+        return;
+      }
 
       try {
-        const res = await fetch(`${window.API_BASE}/api/auth/signup`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ fullName, email, password })
+        const { res, data } = await postJson(`${window.API_BASE}/api/auth/signup`, {
+          fullName,
+          username,
+          email,
+          password,
+          confirmPassword
         });
 
-        const data = await res.json();
-
         if (!res.ok || !data.success) {
-          errorBox.textContent = data.message || "Signup failed";
+          setMessage(errorBox, data.message || "Signup failed");
           return;
         }
 
-        const user = { ...data.user, token: data.token };
-        localStorage.setItem("user", JSON.stringify(user));
-
+        window.storeUserSession(data);
         window.location.href = "dashboard.html";
-
       } catch (err) {
         console.error("SIGNUP ERROR:", err);
-        errorBox.textContent = "Server error. Try again.";
+        setMessage(errorBox, "Server error. Try again.");
       }
     });
   }
 
-  // ----------------- LOGIN -----------------
   const loginForm = document.getElementById("loginForm");
   if (loginForm) {
     loginForm.addEventListener("submit", async (e) => {
       e.preventDefault();
 
-      const emailEl = document.getElementById("loginEmail");
-      const passwordEl = document.getElementById("loginPassword");
+      const identifier = document.getElementById("loginIdentifier")?.value.trim() || "";
+      const password = document.getElementById("loginPassword")?.value || "";
       const errorBox = document.getElementById("loginError");
 
-      if (!emailEl || !passwordEl || !errorBox) return;
-
-      const email = emailEl.value.trim();
-      const password = passwordEl.value.trim();
-
-      errorBox.textContent = "";
+      setMessage(errorBox, "");
 
       try {
-        const res = await fetch(`${window.API_BASE}/api/auth/login`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password })
+        const { res, data } = await postJson(`${window.API_BASE}/api/auth/login`, {
+          identifier,
+          password
         });
 
-        const data = await res.json();
-
         if (!res.ok || !data.success) {
-          errorBox.textContent = data.message || "Invalid login details";
+          setMessage(errorBox, data.message || "Invalid login details");
           return;
         }
 
-        const user = { ...data.user, token: data.token };
-        localStorage.setItem("user", JSON.stringify(user));
-
-        if (user.role === "admin") window.location.href = "admin.html";
-        else window.location.href = "dashboard.html";
-
+        const user = window.storeUserSession(data);
+        window.location.href = user.role === "admin" ? "admin.html" : "dashboard.html";
       } catch (err) {
         console.error("LOGIN ERROR:", err);
-        errorBox.textContent = "Server error. Try again.";
+        setMessage(errorBox, "Server error. Try again.");
       }
     });
   }
 
+  const forgotForm = document.getElementById("forgotPasswordForm");
+  if (forgotForm) {
+    forgotForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const identifier = document.getElementById("forgotIdentifier")?.value.trim() || "";
+      const messageBox = document.getElementById("forgotMessage");
+      const debugBox = document.getElementById("forgotDebug");
+
+      setMessage(messageBox, "");
+      if (debugBox) {
+        debugBox.innerHTML = "";
+      }
+
+      try {
+        const { res, data } = await postJson(`${window.API_BASE}/api/auth/forgot-password`, {
+          identifier
+        });
+
+        if (!res.ok || !data.success) {
+          setMessage(messageBox, data.message || "Could not send reset link");
+          return;
+        }
+
+        setMessage(
+          messageBox,
+          data.message || "If an account exists, a reset link has been sent.",
+          "success"
+        );
+
+        if (debugBox && data.resetUrl) {
+          debugBox.innerHTML = `<a href="${data.resetUrl}">Open reset link</a>`;
+        }
+      } catch (err) {
+        console.error("FORGOT PASSWORD ERROR:", err);
+        setMessage(messageBox, "Server error. Try again.");
+      }
+    });
+  }
+
+  const resetForm = document.getElementById("resetPasswordForm");
+  if (resetForm) {
+    const token = new URLSearchParams(window.location.search).get("token") || "";
+    const messageBox = document.getElementById("resetMessage");
+    const submitBtn = document.getElementById("resetPasswordBtn");
+
+    if (!token) {
+      setMessage(messageBox, "This reset link is invalid.");
+      if (submitBtn) {
+        submitBtn.disabled = true;
+      }
+    } else {
+      fetch(`${window.API_BASE}/api/auth/reset-password/validate?token=${encodeURIComponent(token)}`)
+        .then(async (res) => {
+          const data = await res.json().catch(() => ({ success: false }));
+          if (!res.ok || !data.success) {
+            setMessage(messageBox, data.message || "This reset link is invalid or expired.");
+            if (submitBtn) {
+              submitBtn.disabled = true;
+            }
+          }
+        })
+        .catch(() => {
+          setMessage(messageBox, "Could not validate reset link.");
+          if (submitBtn) {
+            submitBtn.disabled = true;
+          }
+        });
+    }
+
+    resetForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const password = document.getElementById("resetPassword")?.value || "";
+      const confirmPassword = document.getElementById("resetConfirmPassword")?.value || "";
+
+      setMessage(messageBox, "");
+
+      if (password !== confirmPassword) {
+        setMessage(messageBox, "Passwords do not match");
+        return;
+      }
+
+      try {
+        const { res, data } = await postJson(`${window.API_BASE}/api/auth/reset-password`, {
+          token,
+          password,
+          confirmPassword
+        });
+
+        if (!res.ok || !data.success) {
+          setMessage(messageBox, data.message || "Could not reset password");
+          return;
+        }
+
+        window.storeUserSession(data);
+        setMessage(messageBox, "Password reset successful. Redirecting...", "success");
+        setTimeout(() => {
+          window.location.href = "dashboard.html";
+        }, 1200);
+      } catch (err) {
+        console.error("RESET PASSWORD ERROR:", err);
+        setMessage(messageBox, "Server error. Try again.");
+      }
+    });
+  }
 });

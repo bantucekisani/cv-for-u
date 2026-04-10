@@ -1,65 +1,261 @@
+const crypto = require("crypto");
 const express = require("express");
-const router = express.Router();
-const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const axios = require("axios");
+
+const User = require("../models/User");
+const auth = require("../middleware/auth");
+
+const router = express.Router();
+const PASSWORD_RESET_TTL_MS = 1000 * 60 * 60;
+
+function normalizeEmail(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function normalizeIdentifier(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function slugifyUsername(value) {
+  const username = String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, "-")
+    .replace(/[-._]{2,}/g, "-")
+    .replace(/^[-._]+|[-._]+$/g, "");
+
+  return username.length >= 3 ? username.slice(0, 30) : "";
+}
+
+function validatePassword(password) {
+  const value = String(password || "");
+
+  if (value.length < 8) {
+    return "Password must be at least 8 characters";
+  }
+
+  if (value.length > 72) {
+    return "Password is too long";
+  }
+
+  if (!/[A-Za-z]/.test(value) || !/\d/.test(value)) {
+    return "Password must include at least one letter and one number";
+  }
+
+  return null;
+}
+
+function buildUserPayload(user) {
+  return {
+    id: user._id,
+    fullName: user.fullName,
+    username: user.username || null,
+    email: user.email,
+    role: user.role,
+    plan: user.plan
+  };
+}
+
+function signToken(user) {
+  return jwt.sign(
+    {
+      id: user._id,
+      role: user.role
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: "7d" }
+  );
+}
+
+function hashResetToken(token) {
+  return crypto
+    .createHash("sha256")
+    .update(String(token || ""))
+    .digest("hex");
+}
+
+function getAppUrl(req) {
+  return (
+    process.env.APP_URL ||
+    process.env.PUBLIC_URL ||
+    `${req.protocol}://${req.get("host")}`
+  ).replace(/\/+$/, "");
+}
+
+async function findUserByIdentifier(identifier) {
+  const normalized = normalizeIdentifier(identifier);
+  if (!normalized) {
+    return null;
+  }
+
+  return User.findOne({
+    $or: [
+      { email: normalized },
+      { username: normalized }
+    ]
+  });
+}
+
+async function generateUniqueUsername(baseValue, excludeUserId = null) {
+  const seed =
+    slugifyUsername(baseValue) ||
+    `user${Date.now().toString().slice(-6)}`;
+
+  let candidate = seed.slice(0, 30);
+  let counter = 0;
+
+  while (true) {
+    const query = { username: candidate };
+    if (excludeUserId) {
+      query._id = { $ne: excludeUserId };
+    }
+
+    const exists = await User.exists(query);
+    if (!exists) {
+      return candidate;
+    }
+
+    counter += 1;
+    const suffix = `${counter}`;
+    const prefix = seed.slice(0, Math.max(3, 30 - suffix.length));
+    candidate = `${prefix}${suffix}`;
+  }
+}
+
+async function ensureUsername(user, preferredValue = "") {
+  if (user.username) {
+    return user.username;
+  }
+
+  user.username = await generateUniqueUsername(
+    preferredValue || user.fullName || user.email.split("@")[0],
+    user._id
+  );
+
+  await user.save();
+  return user.username;
+}
+
+async function sendPasswordResetEmail(user, resetUrl) {
+  const resendApiKey = process.env.RESEND_API_KEY;
+  const emailFrom = process.env.EMAIL_FROM;
+
+  if (!resendApiKey || !emailFrom) {
+    console.warn("Password reset email not sent: RESEND_API_KEY or EMAIL_FROM missing");
+    return false;
+  }
+
+  await axios.post(
+    "https://api.resend.com/emails",
+    {
+      from: emailFrom,
+      to: [user.email],
+      subject: "Reset your CV for U password",
+      html: `
+        <p>Hello ${user.fullName || "there"},</p>
+        <p>We received a request to reset your CV for U password.</p>
+        <p><a href="${resetUrl}">Reset your password</a></p>
+        <p>This link expires in 1 hour. If you did not request this, you can ignore this email.</p>
+      `,
+      text: [
+        `Hello ${user.fullName || "there"},`,
+        "",
+        "We received a request to reset your CV for U password.",
+        `Reset your password: ${resetUrl}`,
+        "",
+        "This link expires in 1 hour. If you did not request this, you can ignore this email."
+      ].join("\n")
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${resendApiKey}`,
+        "Content-Type": "application/json"
+      }
+    }
+  );
+
+  return true;
+}
 
 /* ============================
    SIGNUP
 ============================ */
 router.post("/signup", async (req, res) => {
   try {
-    let { fullName, email, password } = req.body;
+    let { fullName, email, password, confirmPassword } = req.body;
+    const rawUsername = String(req.body.username || "").trim();
+
+    fullName = String(fullName || "").trim();
+    email = normalizeEmail(email);
+    let username = slugifyUsername(rawUsername);
 
     if (!fullName || !email || !password) {
       return res.status(400).json({
         success: false,
-        message: "All fields required"
+        message: "Full name, email, and password are required"
       });
     }
 
-    // 🔒 Normalize email
-    email = email.toLowerCase().trim();
+    if (confirmPassword && password !== confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Passwords do not match"
+      });
+    }
 
-    const exists = await User.findOne({ email });
-    if (exists) {
+    const passwordError = validatePassword(password);
+    if (passwordError) {
+      return res.status(400).json({
+        success: false,
+        message: passwordError
+      });
+    }
+
+    if (rawUsername && !username) {
+      return res.status(400).json({
+        success: false,
+        message: "Username must be at least 3 characters and use letters, numbers, dots, dashes, or underscores"
+      });
+    }
+
+    const existingEmail = await User.findOne({ email });
+    if (existingEmail) {
       return res.status(409).json({
         success: false,
         message: "Email already registered"
       });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    if (username) {
+      const existingUsername = await User.findOne({ username });
+      if (existingUsername) {
+        return res.status(409).json({
+          success: false,
+          message: "Username already taken"
+        });
+      }
+    } else {
+      username = await generateUniqueUsername(fullName || email.split("@")[0]);
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 12);
 
     const user = await User.create({
-      fullName: fullName.trim(),
+      fullName,
+      username,
       email,
       password: hashedPassword,
-      role: "user",   // 🔒 NEVER accept role from frontend
+      role: "user",
       plan: "free"
     });
 
-    const token = jwt.sign(
-      {
-        id: user._id,
-        role: user.role
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
-
     res.status(201).json({
       success: true,
-      user: {
-        id: user._id,
-        fullName: user.fullName,
-        email: user.email,
-        role: user.role,
-        plan: user.plan
-      },
-      token
+      user: buildUserPayload(user),
+      token: signToken(user)
     });
-
   } catch (err) {
     console.error("SIGNUP ERROR:", err);
     res.status(500).json({
@@ -74,22 +270,21 @@ router.post("/signup", async (req, res) => {
 ============================ */
 router.post("/login", async (req, res) => {
   try {
-    let { email, password } = req.body;
+    const identifier = normalizeIdentifier(req.body.identifier || req.body.email);
+    const password = String(req.body.password || "");
 
-    if (!email || !password) {
+    if (!identifier || !password) {
       return res.status(401).json({
         success: false,
-        message: "Invalid email or password"
+        message: "Invalid login details"
       });
     }
 
-    email = email.toLowerCase().trim();
-
-    const user = await User.findOne({ email });
+    const user = await findUserByIdentifier(identifier);
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: "Invalid email or password"
+        message: "Invalid login details"
       });
     }
 
@@ -97,33 +292,203 @@ router.post("/login", async (req, res) => {
     if (!isMatch) {
       return res.status(401).json({
         success: false,
-        message: "Invalid email or password"
+        message: "Invalid login details"
       });
     }
 
-    const token = jwt.sign(
-      {
-        id: user._id,
-        role: user.role
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
+    await ensureUsername(user, user.fullName || user.email.split("@")[0]);
 
     res.json({
       success: true,
-      user: {
-        id: user._id,
-        fullName: user.fullName,
-        email: user.email,
-        role: user.role,
-        plan: user.plan
-      },
-      token
+      user: buildUserPayload(user),
+      token: signToken(user)
     });
-
   } catch (err) {
     console.error("LOGIN ERROR:", err);
+    res.status(500).json({
+      success: false,
+      message: "Server error"
+    });
+  }
+});
+
+/* ============================
+   CURRENT USER
+============================ */
+router.get("/me", auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found"
+      });
+    }
+
+    await ensureUsername(user, user.fullName || user.email.split("@")[0]);
+
+    res.json({
+      success: true,
+      user: buildUserPayload(user)
+    });
+  } catch (err) {
+    console.error("ME ERROR:", err);
+    res.status(500).json({
+      success: false,
+      message: "Server error"
+    });
+  }
+});
+
+/* ============================
+   FORGOT PASSWORD
+============================ */
+router.post("/forgot-password", async (req, res) => {
+  try {
+    const identifier = normalizeIdentifier(req.body.identifier || req.body.email);
+
+    if (!identifier) {
+      return res.status(400).json({
+        success: false,
+        message: "Email or username is required"
+      });
+    }
+
+    const user = await findUserByIdentifier(identifier);
+
+    const response = {
+      success: true,
+      message: "If an account exists, a reset link has been sent."
+    };
+
+    if (!user) {
+      return res.json(response);
+    }
+
+    const rawToken = crypto.randomBytes(32).toString("hex");
+    const resetUrl = `${getAppUrl(req)}/reset-password.html?token=${rawToken}`;
+
+    user.passwordResetTokenHash = hashResetToken(rawToken);
+    user.passwordResetExpiresAt = new Date(Date.now() + PASSWORD_RESET_TTL_MS);
+    await user.save();
+
+    let delivered = false;
+    try {
+      delivered = await sendPasswordResetEmail(user, resetUrl);
+    } catch (err) {
+      console.error("PASSWORD RESET EMAIL ERROR:", err.message);
+    }
+
+    if (!delivered && (
+      process.env.NODE_ENV !== "production" ||
+      process.env.EXPOSE_PASSWORD_RESET_LINKS === "true"
+    )) {
+      response.resetUrl = resetUrl;
+    }
+
+    res.json(response);
+  } catch (err) {
+    console.error("FORGOT PASSWORD ERROR:", err);
+    res.status(500).json({
+      success: false,
+      message: "Server error"
+    });
+  }
+});
+
+/* ============================
+   VALIDATE RESET TOKEN
+============================ */
+router.get("/reset-password/validate", async (req, res) => {
+  try {
+    const token = String(req.query.token || "");
+    if (!token) {
+      return res.status(400).json({
+        success: false,
+        message: "Reset token is required"
+      });
+    }
+
+    const user = await User.findOne({
+      passwordResetTokenHash: hashResetToken(token),
+      passwordResetExpiresAt: { $gt: new Date() }
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: "This reset link is invalid or has expired"
+      });
+    }
+
+    return res.json({ success: true });
+  } catch (err) {
+    console.error("RESET TOKEN VALIDATION ERROR:", err);
+    res.status(500).json({
+      success: false,
+      message: "Server error"
+    });
+  }
+});
+
+/* ============================
+   RESET PASSWORD
+============================ */
+router.post("/reset-password", async (req, res) => {
+  try {
+    const token = String(req.body.token || "");
+    const password = String(req.body.password || "");
+    const confirmPassword = String(req.body.confirmPassword || "");
+
+    if (!token || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Reset token and password are required"
+      });
+    }
+
+    if (confirmPassword && password !== confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Passwords do not match"
+      });
+    }
+
+    const passwordError = validatePassword(password);
+    if (passwordError) {
+      return res.status(400).json({
+        success: false,
+        message: passwordError
+      });
+    }
+
+    const user = await User.findOne({
+      passwordResetTokenHash: hashResetToken(token),
+      passwordResetExpiresAt: { $gt: new Date() }
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: "This reset link is invalid or has expired"
+      });
+    }
+
+    user.password = await bcrypt.hash(password, 12);
+    user.passwordResetTokenHash = null;
+    user.passwordResetExpiresAt = null;
+    await ensureUsername(user, user.fullName || user.email.split("@")[0]);
+    await user.save();
+
+    res.json({
+      success: true,
+      message: "Password reset successful",
+      user: buildUserPayload(user),
+      token: signToken(user)
+    });
+  } catch (err) {
+    console.error("RESET PASSWORD ERROR:", err);
     res.status(500).json({
       success: false,
       message: "Server error"

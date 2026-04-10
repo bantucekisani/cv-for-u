@@ -2,48 +2,50 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Login – CV for U</title>
+  <title>Login - CV for U</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="css/auth.css">
   <link rel="stylesheet" href="css/cv.css">
 </head>
 
 <body class="auth-body">
-
   <main class="auth-container">
     <img src="images/logo.png" alt="CV for U" style="width:90px; margin-bottom:14px;">
     <h1>Welcome back</h1>
-    <p class="form-sub">Log in to access your saved CVs</p>
-   
+    <p class="form-sub">Log in with your email or username to access your saved CVs.</p>
+
     <form id="loginForm">
       <div class="form-group">
-        <label>Email address</label>
-        <input type="email" id="loginEmail" required>
+        <label>Email or username</label>
+        <input type="text" id="loginIdentifier" autocomplete="username" required>
       </div>
 
       <div class="form-group">
         <label>Password</label>
-        <input type="password" id="loginPassword" required>
+        <input type="password" id="loginPassword" autocomplete="current-password" required>
       </div>
 
-      <p id="loginError" style="color:red; font-size:14px;"></p>
+      <div class="auth-link-row">
+        <a href="forgot-password.html">Forgot password?</a>
+      </div>
+
+      <p id="loginError" class="form-message"></p>
 
       <button type="submit" class="auth-btn">Log In</button>
     </form>
 
     <div class="auth-alt">
       <p>
-        Don’t have an account?
+        Don't have an account?
         <a href="signup.html" class="signup-link">Create one for free</a>
       </p>
     </div>
 
     <p style="margin-top:10px;">
-      <a href="index.html">← Back to home</a>
+      <a href="index.html">Back to home</a>
     </p>
   </main>
 
-  <!-- JS Scripts -->    
   <script src="js/api.js"></script>
   <script src="js/auth.js"></script>
 </body>

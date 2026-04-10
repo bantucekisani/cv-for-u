@@ -1,86 +1,108 @@
-/* =====================================================
-   SERVER.JS — CV FOR U
-===================================================== */
-
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
-require("dotenv").config();
-
 const helmet = require("helmet");
 const compression = require("compression");
 const bodyParser = require("body-parser");
+const rateLimit = require("express-rate-limit");
+
+require("dotenv").config();
 
 const connectDB = require("./config/db");
 
-
-
 const app = express();
 app.set("trust proxy", 1);
+app.disable("x-powered-by");
 
-/* =====================================================
-   SECURITY (OPTIONAL)
-===================================================== */
-// app.use(helmet());
-// app.use(compression());
+function buildAllowedOrigins() {
+  const normalizeOrigin = value => String(value || "").trim().replace(/\/+$/, "");
+  const fromEnv = String(process.env.ALLOWED_ORIGINS || "")
+    .split(",")
+    .map(normalizeOrigin)
+    .filter(Boolean);
 
-/* =====================================================
-   CORS
-===================================================== */
+  const defaults = [
+    process.env.PUBLIC_URL,
+    process.env.APP_URL,
+    "http://localhost:3000",
+    "http://localhost:5000",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5000"
+  ].map(normalizeOrigin).filter(Boolean);
+
+  return new Set([...defaults, ...fromEnv]);
+}
+
+const allowedOrigins = buildAllowedOrigins();
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: "Too many authentication attempts. Please try again later."
+  }
+});
+
+const aiLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: "Too many AI requests. Please slow down and try again."
+  }
+});
+
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false
+}));
+app.use(compression());
+
 app.use(
   cors({
-    origin: true,
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.has(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("Not allowed by CORS"));
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"]
   })
 );
 
-// Required for local network access (Chrome)
-app.use((req, res, next) => {
-  res.setHeader("Access-Control-Allow-Private-Network", "true");
-  next();
-});
+if (process.env.NODE_ENV !== "production") {
+  app.use((req, res, next) => {
+    res.setHeader("Access-Control-Allow-Private-Network", "true");
+    next();
+  });
+}
 
-/* =====================================================
-   🔥 PAYFAST RAW BODY (CRITICAL)
-   MUST be BEFORE express.urlencoded()
-===================================================== */
 app.use(
   "/api/payfast/notify",
   bodyParser.raw({ type: "application/x-www-form-urlencoded" })
 );
 
-/* =====================================================
-   NORMAL BODY PARSERS
-   (ALL NON-PAYFAST ROUTES)
-===================================================== */
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: false, limit: "50mb" }));
 
-
-
-/* =====================================================
-   STATIC FRONTEND
-===================================================== */
 app.use(express.static(path.join(__dirname, "public")));
 
-/* =====================================================
-   ROUTES
-===================================================== */
-app.use("/api/auth", require("./routes/auth"));
+app.use("/api/auth", authLimiter, require("./routes/auth"));
 app.use("/api/cv", require("./routes/cv"));
-app.use("/api/ai", require("./routes/ai"));
+app.use("/api/ai", aiLimiter, require("./routes/ai"));
 app.use("/api/pdf", require("./routes/pdf"));
-
 app.use("/api/payfast", require("./routes/payfast"));
 app.use("/api/payfast", require("./routes/payfast-notify"));
 app.use("/api/admin", require("./routes/admin"));
 
-
-/* =====================================================
-   HEALTH CHECK
-===================================================== */
 app.get("/health", (req, res) => {
   res.json({
     status: "ok",
@@ -89,18 +111,26 @@ app.get("/health", (req, res) => {
   });
 });
 
-/* =====================================================
-   START SERVER (RENDER-SAFE)
-===================================================== */
+app.use((err, req, res, next) => {
+  if (err?.message === "Not allowed by CORS") {
+    return res.status(403).json({
+      success: false,
+      message: "Origin not allowed"
+    });
+  }
+
+  return next(err);
+});
+
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, "0.0.0.0", async () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 
   try {
     await connectDB();
-    console.log("✅ Database connected");
+    console.log("Database connected");
   } catch (err) {
-    console.error("❌ Database connection failed:", err.message);
+    console.error("Database connection failed:", err.message);
   }
 });

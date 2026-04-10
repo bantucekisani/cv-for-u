@@ -1,29 +1,41 @@
 const express = require("express");
-const router = express.Router();
+const rateLimit = require("express-rate-limit");
+
 const auth = require("../middleware/auth");
 const CV = require("../models/Cv");
+const {
+  getPurchaseConfig,
+  formatAmount
+} = require("../utils/paymentPlans");
+
+const router = express.Router();
+const createPaymentLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: "Too many payment attempts. Please try again later."
+  }
+});
 
 /* ======================================================
    PAYFAST CREATE PAYMENT
    POST /api/payfast/create
 ====================================================== */
-router.post("/create", auth, async (req, res) => {
+router.post("/create", auth, createPaymentLimiter, async (req, res) => {
   try {
     const { cvId, type } = req.body;
+    const purchase = getPurchaseConfig(type);
 
-    /* ============================
-       1️⃣ VALIDATE PAYMENT TYPE
-    ============================ */
-    if (!["cv", "cover-letter"].includes(type)) {
+    if (!purchase) {
       return res.status(400).json({
         success: false,
         message: "Invalid payment type"
       });
     }
 
-    /* ============================
-       2️⃣ CV OWNERSHIP CHECK
-    ============================ */
     if (!cvId) {
       return res.status(400).json({
         success: false,
@@ -43,92 +55,40 @@ router.post("/create", auth, async (req, res) => {
       });
     }
 
-    /* ============================
-       3️⃣ SERVER-SIDE PRICING
-       (NEVER TRUST FRONTEND)
-    ============================ */
-    const PRICES = {
-      cv: 40.0,             // R40 → 4 CV downloads + 1 cover letter
-      "cover-letter": 25.0  // R25 → 1 cover letter
-    };
+    const publicUrl =
+      process.env.PUBLIC_URL ||
+      process.env.APP_URL ||
+      "https://cv-for-u.onrender.com";
 
-    const amount = PRICES[type];
+    const paymentId = `${purchase.type}-${cvId}-${req.user.id}-${Date.now()}`;
+    const returnUrl = `${publicUrl}/payment-success.html?type=${purchase.type}&cv=${cvId}`;
+    const cancelUrl = `${publicUrl}/payment-cancel.html`;
+    const notifyUrl = `${publicUrl}/api/payfast/notify`;
 
-    /* ============================
-       4️⃣ PUBLIC URL (CRITICAL)
-    ============================ */
-    const PUBLIC_URL =
-      process.env.PUBLIC_URL || "https://cv-for-u.onrender.com";
-
-    /* ============================
-       5️⃣ PAYMENT METADATA
-    ============================ */
-    const itemName =
-      type === "cv" ? "CV Unlock" : "AI Cover Letter";
-
-    // 🔑 UNIQUE PAYMENT ID (USED BY IPN)
-    // cv-<cvId>-<userId>-<timestamp>
-    // cover-letter-<cvId>-<userId>-<timestamp>
-    const paymentId = `${type}-${cvId}-${req.user.id}-${Date.now()}`;
-
-    const returnUrl =
-      `${PUBLIC_URL}/payment-success.html?type=${type}&cv=${cvId}`;
-
-    const cancelUrl =
-      `${PUBLIC_URL}/payment-cancel.html`;
-
-    const notifyUrl =
-      `${PUBLIC_URL}/api/payfast/notify`;
-
-    /* ============================
-       6️⃣ PAYFAST PAYLOAD
-    ============================ */
     const paymentData = {
       merchant_id: process.env.PAYFAST_MERCHANT_ID,
       merchant_key: process.env.PAYFAST_MERCHANT_KEY,
-
       return_url: returnUrl,
       cancel_url: cancelUrl,
       notify_url: notifyUrl,
-
       m_payment_id: paymentId,
-      amount: amount.toFixed(2),
-      item_name: itemName
+      amount: formatAmount(purchase.amountCents),
+      item_name: purchase.itemName
     };
 
-    /* ============================
-       7️⃣ PAYFAST GRACE UNLOCK
-       (OPTIONAL BUT SAFE)
-    ============================ */
-    if (type === "cover-letter") {
-      await CV.findByIdAndUpdate(cvId, {
-        $set: {
-          pendingCoverUnlock: true,
-          pendingCoverUnlockAt: Date.now()
-        }
-      });
-
-      console.log("⏳ Pending cover letter unlock set");
-    }
-
-    /* ============================
-       8️⃣ REDIRECT TO PAYFAST
-    ============================ */
     const query = new URLSearchParams(paymentData).toString();
-
-    const PAYFAST_URL =
+    const payfastUrl =
       process.env.PAYFAST_MODE === "live"
         ? "https://www.payfast.co.za/eng/process"
         : "https://sandbox.payfast.co.za/eng/process";
 
-    return res.json({
+    res.json({
       success: true,
-      redirectUrl: `${PAYFAST_URL}?${query}`
+      redirectUrl: `${payfastUrl}?${query}`
     });
-
   } catch (err) {
-    console.error("❌ PAYFAST CREATE ERROR:", err);
-    return res.status(500).json({
+    console.error("PAYFAST CREATE ERROR:", err);
+    res.status(500).json({
       success: false,
       message: "Payment creation failed"
     });

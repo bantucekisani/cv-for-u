@@ -4,21 +4,16 @@
   <meta charset="UTF-8" />
   <title>Payment Successful</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <!-- HARD CACHE BUSTER -->
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
   <meta http-equiv="Pragma" content="no-cache">
 </head>
 
 <body style="font-family:system-ui;text-align:center;padding:40px">
-
-  <h1>✅ Payment Successful</h1>
-  <p>Redirecting you back to your CV…</p>
+  <h1>Payment Successful</h1>
+  <p>Redirecting you back to your CV...</p>
 
   <script>
     (async function () {
-      console.log("✅ PAYMENT SUCCESS");
-
       const params = new URLSearchParams(window.location.search);
       const cvId = params.get("cv");
       const type = params.get("type");
@@ -28,24 +23,28 @@
         return;
       }
 
-      // 🔥 SERVER-SIDE CONFIRM (R25 ONLY)
-      if (type === "cover-letter") {
+      let storedUser = null;
+      try {
+        storedUser = JSON.parse(localStorage.getItem("user") || "null");
+      } catch {
+        storedUser = null;
+      }
+      const token = storedUser?.token || localStorage.getItem("token") || "";
+
+      if (type === "cover-letter" && token) {
         try {
           await fetch(`/api/payfast/confirm-cover/${cvId}`, {
             headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`
+              Authorization: `Bearer ${token}`
             }
           });
         } catch (err) {
-          console.warn("⚠️ Cover letter confirm failed, will rely on reload");
+          console.warn("Cover letter confirm failed, reload will retry.");
         }
       }
 
-      // 🔁 ALWAYS HARD RELOAD CV FROM SERVER
-   window.location.replace(`create-cv.html?id=${cvId}&v=20260207`);
-
+      window.location.replace(`create-cv.html?id=${cvId}&v=20260410`);
     })();
   </script>
-
 </body>
 </html>

@@ -1,15 +1,14 @@
 const express = require("express");
-console.log("🔥 routes/pdf.js LOADED");
 
 const router = express.Router();
 const puppeteer = require("puppeteer-core");
 const chromium = require("@sparticuz/chromium");
-
 const fs = require("fs");
 const path = require("path");
 
 const CV = require("../models/Cv");
 const auth = require("../middleware/auth");
+const authViaQuery = require("../middleware/authViaQuery");
 const renderCvHTML = require("../utils/renderTemplate");
 
 /* ======================================================
@@ -24,7 +23,7 @@ try {
     "utf8"
   );
 } catch {
-  console.warn("⚠️ CV CSS not found");
+  console.warn("CV CSS not found");
 }
 
 try {
@@ -33,11 +32,11 @@ try {
     "utf8"
   );
 } catch {
-  console.warn("⚠️ Cover letter CSS not found");
+  console.warn("Cover letter CSS not found");
 }
 
 /* ======================================================
-   PDF RENDERER — RENDER FREE SAFE
+   PDF RENDERER
 ====================================================== */
 async function renderPdf(html, css) {
   const browser = await puppeteer.launch({
@@ -46,18 +45,19 @@ async function renderPdf(html, css) {
     headless: chromium.headless
   });
 
-  const page = await browser.newPage();
+  try {
+    const page = await browser.newPage();
 
-  await page.setViewport({
-    width: 1200,
-    height: 1697,
-    deviceScaleFactor: 1
-  });
+    await page.setViewport({
+      width: 1200,
+      height: 1697,
+      deviceScaleFactor: 1
+    });
 
-  await page.emulateMediaType("screen");
+    await page.emulateMediaType("screen");
 
-  await page.setContent(
-    `<!DOCTYPE html>
+    await page.setContent(
+      `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8" />
@@ -70,30 +70,51 @@ async function renderPdf(html, css) {
   ${html}
 </body>
 </html>`,
-    { waitUntil: "networkidle0" }
-  );
+      { waitUntil: "networkidle0" }
+    );
 
-  const pdf = await page.pdf({
-    format: "A4",
-    printBackground: true,
-    margin: { top: 0, right: 0, bottom: 0, left: 0 }
-  });
-
-  await browser.close();
-  return pdf;
+    return await page.pdf({
+      format: "A4",
+      printBackground: true,
+      margin: { top: 0, right: 0, bottom: 0, left: 0 }
+    });
+  } finally {
+    await browser.close();
+  }
 }
 
-/* ======================================================
-   CV PDF
-====================================================== */
-router.post("/cv/:id", auth, async (req, res) => {
-  try {
-    const cv = await CV.findOne({
-      _id: req.params.id,
-      userId: req.user.id
-    });
+function pdfAuth(req, res, next) {
+  if (req.query.token) {
+    return authViaQuery(req, res, next);
+  }
 
-    if (!cv) return res.status(404).send("CV not found");
+  return auth(req, res, next);
+}
+
+function setPdfHeaders(res, filename, pdf) {
+  res.set({
+    "Content-Type": "application/pdf",
+    "Content-Disposition": `attachment; filename="${filename}"`,
+    "Content-Length": String(pdf.length),
+    "Cache-Control": "private, no-store, max-age=0",
+    "X-Content-Type-Options": "nosniff"
+  });
+}
+
+async function getOwnedCv(req) {
+  return CV.findOne({
+    _id: req.params.id,
+    userId: req.user.id
+  });
+}
+
+async function sendCvPdf(req, res) {
+  try {
+    const cv = await getOwnedCv(req);
+
+    if (!cv) {
+      return res.status(404).send("CV not found");
+    }
 
     if ((cv.downloadsRemaining || 0) <= 0) {
       return res.status(402).send("CV payment required");
@@ -107,28 +128,17 @@ router.post("/cv/:id", auth, async (req, res) => {
       { $inc: { downloadsRemaining: -1 } }
     );
 
-    res.set({
-      "Content-Type": "application/pdf",
-      "Content-Disposition": "attachment; filename=CV.pdf"
-    });
-
+    setPdfHeaders(res, "CV.pdf", pdf);
     res.send(pdf);
-
   } catch (err) {
-    console.error("❌ CV PDF ERROR:", err);
+    console.error("CV PDF ERROR:", err);
     res.status(500).send("CV PDF failed");
   }
-});
+}
 
-/* ======================================================
-   COVER LETTER PDF (IPN-SAFE)
-====================================================== */
-router.get("/cover-letter/:id", auth, async (req, res) => {
+async function sendCoverLetterPdf(req, res) {
   try {
-    const cv = await CV.findOne({
-      _id: req.params.id,
-      userId: req.user.id
-    });
+    const cv = await getOwnedCv(req);
 
     if (!cv || !cv.coverLetter) {
       return res.status(404).send("Cover letter not found");
@@ -138,15 +148,18 @@ router.get("/cover-letter/:id", auth, async (req, res) => {
       return res.status(402).send("Cover letter payment required");
     }
 
-    const lines = cv.coverLetter.split("\n");
+    const lines = cv.coverLetter
+      .split(/\r?\n/)
+      .map(line => line.trim())
+      .filter(Boolean);
 
     const html = `
       <div class="cover-letter">
         <div class="address">
-          ${lines.slice(0, 7).map(l => `<p>${l}</p>`).join("")}
+          ${lines.slice(0, 7).map(line => `<p>${line}</p>`).join("")}
         </div>
         <div class="body">
-          ${lines.slice(7).map(l => `<p>${l}</p>`).join("")}
+          ${lines.slice(7).map(line => `<p>${line}</p>`).join("")}
         </div>
       </div>
     `;
@@ -158,18 +171,21 @@ router.get("/cover-letter/:id", auth, async (req, res) => {
       { $inc: { coverLettersRemaining: -1 } }
     );
 
-    res.writeHead(200, {
-      "Content-Type": "application/pdf",
-      "Content-Disposition": "attachment; filename=Cover_Letter.pdf",
-      "Content-Length": pdf.length
-    });
-
-    res.end(pdf);
-
+    setPdfHeaders(res, "Cover_Letter.pdf", pdf);
+    res.send(pdf);
   } catch (err) {
-    console.error("❌ COVER LETTER PDF ERROR:", err);
+    console.error("COVER LETTER PDF ERROR:", err);
     res.status(500).send("Cover letter PDF failed");
   }
-});
+}
+
+/* ======================================================
+   PDF ROUTES
+====================================================== */
+router.get("/cv/:id", pdfAuth, sendCvPdf);
+router.post("/cv/:id", pdfAuth, sendCvPdf);
+
+router.get("/cover-letter/:id", pdfAuth, sendCoverLetterPdf);
+router.post("/cover-letter/:id", pdfAuth, sendCoverLetterPdf);
 
 module.exports = router;

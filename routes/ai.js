@@ -1,32 +1,20 @@
 const express = require("express");
-const router = express.Router();
-const auth = require("../middleware/auth");
 const OpenAI = require("openai");
 
-/* ===============================
-   OPENAI SETUP
-================================ */
+const auth = require("../middleware/auth");
+
+const router = express.Router();
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
-// Stable + cheap (2025)
-const MODEL = "gpt-4o"; // ✅ BEST QUALITY (paid users)
+const MODEL = "gpt-4o";
 
-
-/* ===============================
-   SAFE JSON PARSER
-================================ */
-/* ===============================
-   SAFE JSON PARSER (PRODUCTION)
-================================ */
 function safeJsonParse(text) {
   try {
-    // First attempt: pure JSON
     return JSON.parse(text);
   } catch {
     try {
-      // Fallback: extract JSON block if AI adds extra text
       const match = text.match(/\{[\s\S]*\}/);
       return match ? JSON.parse(match[0]) : null;
     } catch {
@@ -35,92 +23,166 @@ function safeJsonParse(text) {
   }
 }
 
+function cleanText(value, maxLength = 4000) {
+  return String(value || "")
+    .replace(/\r/g, "")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim()
+    .slice(0, maxLength);
+}
+
+function normalizeStringArray(values, { maxItems = 12, maxLength = 80 } = {}) {
+  if (!Array.isArray(values)) {
+    return [];
+  }
+
+  return [...new Set(
+    values
+      .map(value => cleanText(value, maxLength))
+      .filter(Boolean)
+  )].slice(0, maxItems);
+}
+
+function normalizeExperience(items) {
+  if (!Array.isArray(items)) {
+    return [];
+  }
+
+  return items
+    .map(item => ({
+      title: cleanText(item?.title, 120),
+      company: cleanText(item?.company, 120),
+      location: cleanText(item?.location, 120),
+      dates: cleanText(item?.dates, 120),
+      bullets: normalizeStringArray(item?.bullets, {
+        maxItems: 6,
+        maxLength: 180
+      })
+    }))
+    .filter(item =>
+      item.title ||
+      item.company ||
+      item.location ||
+      item.dates ||
+      item.bullets.length
+    )
+    .slice(0, 6);
+}
+
+function normalizeEducation(items) {
+  if (!Array.isArray(items)) {
+    return [];
+  }
+
+  return items
+    .map(item => ({
+      qualification: cleanText(item?.qualification, 140),
+      institution: cleanText(item?.institution, 140),
+      location: cleanText(item?.location, 120),
+      year: cleanText(item?.year, 40)
+    }))
+    .filter(item =>
+      item.qualification ||
+      item.institution ||
+      item.location ||
+      item.year
+    )
+    .slice(0, 4);
+}
+
+function normalizeCvPayload(cv = {}) {
+  return {
+    name: cleanText(cv.name, 120),
+    title: cleanText(cv.title, 120),
+    email: cleanText(cv.email, 160),
+    phone: cleanText(cv.phone, 80),
+    location: cleanText(cv.location, 120),
+    summary: cleanText(cv.summary, 700),
+    skills: normalizeStringArray(cv.skills, {
+      maxItems: 12,
+      maxLength: 60
+    }),
+    experience: normalizeExperience(cv.experience),
+    education: normalizeEducation(cv.education)
+  };
+}
+
+async function createJsonCompletion({
+  systemPrompt,
+  userPrompt,
+  temperature = 0.4
+}) {
+  const completion = await client.chat.completions.create({
+    model: MODEL,
+    temperature,
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt }
+    ]
+  });
+
+  const raw = completion.choices?.[0]?.message?.content?.trim() || "";
+  const data = safeJsonParse(raw);
+
+  if (!data) {
+    console.error("AI RAW:", raw);
+    throw new Error("Invalid AI JSON");
+  }
+
+  return data;
+}
+
+async function createTextCompletion({
+  systemPrompt,
+  userPrompt,
+  temperature = 0.5
+}) {
+  const completion = await client.chat.completions.create({
+    model: MODEL,
+    temperature,
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt }
+    ]
+  });
+
+  return cleanText(completion.choices?.[0]?.message?.content || "", 8000);
+}
 
 /* =====================================================
-   AI – QUICK CV BUILD
-   POST /api/ai/quick-build
+   AI - QUICK CV BUILD
 ===================================================== */
 router.post("/quick-build", auth, async (req, res) => {
   try {
-    const { prompt } = req.body;
-    if (!prompt)
-      return res.json({ success: false, msg: "Missing prompt" });
+    const prompt = cleanText(req.body.prompt, 4000);
 
-    const completion = await client.chat.completions.create({
-      model: MODEL,
-      temperature: 0.4,
-      messages: [
-        { role: "system", content: "Return STRICT JSON only. No text." },
-        {
-          role: "user",
-          content: `
-Create a professional CV from this text:
+    if (!prompt) {
+      return res.json({ success: false, msg: "Missing prompt" });
+    }
+
+    const rawCv = await createJsonCompletion({
+      systemPrompt:
+        "You are CV for U's AI CV assistant. Turn rough candidate notes into a truthful, professional CV draft. Never invent employers, dates, degrees, contact details, or achievements that are not supported by the user's notes. If a detail is missing, leave it blank. Return strict JSON only.",
+      userPrompt: `
+Build a polished first CV draft from these notes:
 
 "${prompt}"
 
-Return JSON ONLY:
+Rules:
+- Write a concise ATS-friendly summary in 2-4 sentences.
+- Suggest 6-12 relevant skills.
+- Convert work history into strong bullet points with action verbs.
+- Use plain professional language suitable for South African job seekers.
+- Keep bullet points factual and do not guess numbers or dates.
+
+Return JSON only:
 {
   "name": "",
   "title": "",
-  "summary": "",
-  "skills": [],
-  "experience": [
-    {
-      "title": "",
-      "company": "",
-      "location": "",
-      "dates": "",
-      "bullets": []
-    }
-  ],
-  "education": []
-}
-`
-        }
-      ]
-    });
-
-    const raw = completion.choices[0].message.content.trim();
-    const cv = safeJsonParse(raw);
-
-    if (!cv) {
-      console.error("AI RAW:", raw);
-      return res.json({ success: false, msg: "Invalid AI JSON" });
-    }
-
-    res.json({ success: true, cv });
-
-  } catch (err) {
-    console.error("AI QUICK ERROR:", err);
-    res.status(500).json({ success: false, msg: "AI error" });
-  }
-});
-
-/* =====================================================
-   AI – FULL CV
-   POST /api/ai/full-cv
-===================================================== */
-router.post("/full-cv", auth, async (req, res) => {
-  try {
-    const { text } = req.body;
-    if (!text)
-      return res.json({ success: false, msg: "Missing text" });
-
-    const completion = await client.chat.completions.create({
-      model: MODEL,
-      temperature: 0.35,
-      messages: [
-        { role: "system", content: "Return STRICT JSON only." },
-        {
-          role: "user",
-          content: `
-Create a FULL ATS-OPTIMIZED CV from:
-
-"${text}"
-
-Return JSON ONLY:
-{
-  "title": "",
+  "email": "",
+  "phone": "",
+  "location": "",
   "summary": "",
   "skills": [],
   "experience": [
@@ -142,20 +204,79 @@ Return JSON ONLY:
   ]
 }
 `
-        }
-      ]
     });
 
-    const raw = completion.choices[0].message.content.trim();
-    const cv = safeJsonParse(raw);
+    res.json({
+      success: true,
+      cv: normalizeCvPayload(rawCv)
+    });
+  } catch (err) {
+    console.error("AI QUICK ERROR:", err);
+    res.status(500).json({ success: false, msg: "AI error" });
+  }
+});
 
-    if (!cv) {
-      console.error("AI RAW:", raw);
-      return res.json({ success: false, msg: "Invalid AI JSON" });
+/* =====================================================
+   AI - FULL CV
+===================================================== */
+router.post("/full-cv", auth, async (req, res) => {
+  try {
+    const text = cleanText(req.body.text, 6000);
+
+    if (!text) {
+      return res.json({ success: false, msg: "Missing text" });
     }
 
-    res.json({ success: true, cv });
+    const rawCv = await createJsonCompletion({
+      systemPrompt:
+        "You are CV for U's senior CV assistant. Transform long-form candidate information into a complete ATS-ready CV draft. Keep everything truthful, professional, and realistic. Never fabricate facts. Return strict JSON only.",
+      userPrompt: `
+Create a detailed CV draft from the candidate information below:
 
+"${text}"
+
+Instructions:
+- Extract any available name, title, email, phone, and location.
+- Write a sharp professional summary focused on strengths, experience, and employability.
+- Suggest 8-12 role-relevant skills when the notes clearly support them.
+- For each experience entry, write up to 5 concise bullet points.
+- Preserve the user's real facts and avoid adding fake metrics, companies, or dates.
+
+Return JSON only:
+{
+  "name": "",
+  "title": "",
+  "email": "",
+  "phone": "",
+  "location": "",
+  "summary": "",
+  "skills": [],
+  "experience": [
+    {
+      "title": "",
+      "company": "",
+      "location": "",
+      "dates": "",
+      "bullets": []
+    }
+  ],
+  "education": [
+    {
+      "qualification": "",
+      "institution": "",
+      "location": "",
+      "year": ""
+    }
+  ]
+}
+`,
+      temperature: 0.35
+    });
+
+    res.json({
+      success: true,
+      cv: normalizeCvPayload(rawCv)
+    });
   } catch (err) {
     console.error("AI FULL ERROR:", err);
     res.status(500).json({ success: false, msg: "AI error" });
@@ -163,135 +284,183 @@ Return JSON ONLY:
 });
 
 /* =====================================================
-   AI – COVER LETTER
-   POST /api/ai/cover-letter
+   AI - COVER LETTER
 ===================================================== */
 router.post("/cover-letter", auth, async (req, res) => {
   try {
-    const { text, name, title } = req.body;
+    const text = cleanText(req.body.text, 5000);
+    const name = cleanText(req.body.name, 120) || "Candidate";
+    const title = cleanText(req.body.title, 120) || "Job Seeker";
 
-    if (!text)
+    if (!text) {
       return res.json({ success: false, msg: "Missing job description" });
+    }
 
-    const prompt = `
-Write a professional cover letter.
+    const letter = await createTextCompletion({
+      systemPrompt:
+        "You write professional, natural cover letters for CV for U. Keep them truthful, confident, and easy to read. Do not invent qualifications or experience. Return plain text only.",
+      userPrompt: `
+Write a cover letter for this candidate.
 
-Candidate:
-Name: ${name || "Candidate"}
-Title: ${title || "Job Seeker"}
+Candidate name: ${name}
+Candidate title: ${title}
 
-Job Description:
+Target job information:
 "${text}"
 
-Rules:
-- South African professional tone
-- 3–4 paragraphs
-- ATS optimized
-- Plain text only
-`;
-
-    const completion = await client.chat.completions.create({
-      model: MODEL,
-      temperature: 0.5,
-      messages: [
-        { role: "system", content: "You write professional cover letters." },
-        { role: "user", content: prompt }
-      ]
+Requirements:
+- 3 to 4 short paragraphs.
+- South African professional tone.
+- Strong opening, relevant strengths, and a clear closing.
+- ATS friendly without sounding robotic.
+- Plain text only.
+`,
+      temperature: 0.5
     });
 
-    res.json({
-      success: true,
-      letter: completion.choices[0].message.content.trim()
-    });
-
+    res.json({ success: true, letter });
   } catch (err) {
     console.error("COVER LETTER ERROR:", err);
     res.status(500).json({ success: false, msg: "AI error" });
   }
 });
+
+/* =====================================================
+   AI - SUGGEST SKILLS
+===================================================== */
 router.post("/suggest-skills", auth, async (req, res) => {
   try {
-    const { title } = req.body;
-    if (!title)
-      return res.json({ success: false, msg: "Missing title" });
+    const title = cleanText(req.body.title, 120);
 
-    const completion = await client.chat.completions.create({
-      model: MODEL,
-      temperature: 0.3,
-      messages: [
-        { role: "system", content: "Return STRICT JSON only." },
-        {
-          role: "user",
-          content: `
-Suggest 8–12 professional skills for this job title:
+    if (!title) {
+      return res.json({ success: false, msg: "Missing title" });
+    }
+
+    const data = await createJsonCompletion({
+      systemPrompt:
+        "You suggest accurate, job-relevant CV skills. Return strict JSON only.",
+      userPrompt: `
+Suggest 8-12 skills for this job title:
 
 "${title}"
 
-Return JSON ONLY:
+Rules:
+- Prioritize ATS-friendly skills and tools.
+- Mix hard and soft skills.
+- Keep each skill short.
+
+Return JSON only:
 {
   "skills": []
 }
-`
-        }
-      ]
+`,
+      temperature: 0.3
     });
 
-    const raw = completion.choices[0].message.content.trim();
-    const data = safeJsonParse(raw);
+    const skills = normalizeStringArray(data.skills, {
+      maxItems: 12,
+      maxLength: 60
+    });
 
-    if (!data?.skills) {
-      console.error("AI RAW:", raw);
+    if (!skills.length) {
       return res.json({ success: false, msg: "Invalid AI JSON" });
     }
 
-    res.json({ success: true, skills: data.skills });
-
+    res.json({ success: true, skills });
   } catch (err) {
     console.error("AI SKILLS ERROR:", err);
     res.status(500).json({ success: false, msg: "AI error" });
   }
 });
+
+/* =====================================================
+   AI - SUGGEST SUMMARY
+===================================================== */
 router.post("/suggest-summary", auth, async (req, res) => {
   try {
-    const { title, summary } = req.body;
+    const title = cleanText(req.body.title, 120);
+    const summary = cleanText(req.body.summary, 900);
 
-    if (!title)
+    if (!title) {
       return res.json({ success: false, msg: "Missing title" });
+    }
 
-    const completion = await client.chat.completions.create({
-      model: MODEL,
-      temperature: 0.4,
-      messages: [
-        { role: "system", content: "Return STRICT JSON only." },
-        {
-          role: "user",
-          content: `
-Improve this professional summary for the job title "${title}".
+    const data = await createJsonCompletion({
+      systemPrompt:
+        "You improve professional CV summaries. Return strict JSON only.",
+      userPrompt: `
+Improve this CV summary for the role "${title}".
 
 Current summary:
-"${summary || ""}"
+"${summary}"
 
-Return JSON ONLY:
+Requirements:
+- 2 to 4 sentences.
+- Confident and professional.
+- ATS-friendly and specific to the role.
+- Do not invent facts.
+
+Return JSON only:
 {
   "summary": ""
 }
-`
-        }
-      ]
+`,
+      temperature: 0.4
     });
 
-    const raw = completion.choices[0].message.content.trim();
-    const data = safeJsonParse(raw);
+    const improvedSummary = cleanText(data.summary, 700);
 
-    if (!data?.summary) {
-      console.error("AI RAW:", raw);
+    if (!improvedSummary) {
       return res.json({ success: false, msg: "Invalid AI JSON" });
     }
 
-    res.json({ success: true, summary: data.summary });
-
+    res.json({ success: true, summary: improvedSummary });
   } catch (err) {
     console.error("AI SUMMARY ERROR:", err);
+    res.status(500).json({ success: false, msg: "AI error" });
+  }
+});
+
+/* =====================================================
+   AI - IMPROVE CV TEXT
+===================================================== */
+router.post("/improve-cv", auth, async (req, res) => {
+  try {
+    const text = cleanText(req.body.text, 7000);
+    const tone = cleanText(req.body.tone, 40) || "professional";
+
+    if (!text) {
+      return res.json({ success: false, msg: "Missing text" });
+    }
+
+    const toneGuide = {
+      professional: "professional and polished",
+      modern: "modern, energetic, and concise",
+      student: "supportive, entry-level, and confidence-building",
+      executive: "senior, strategic, and leadership-focused"
+    };
+
+    const improvedText = await createTextCompletion({
+      systemPrompt:
+        "You are CV for U's CV improvement assistant. Rewrite CV text so it reads clearly, professionally, and truthfully. Improve structure, grammar, and ATS language, but do not fabricate facts. Return plain text only.",
+      userPrompt: `
+Rewrite the CV text below in a ${toneGuide[tone] || toneGuide.professional} tone.
+
+Goals:
+- Keep the candidate's real facts.
+- Strengthen wording and readability.
+- Turn weak duties into clearer achievement-style bullets where possible without inventing results.
+- Organize the output with clear section headings when helpful.
+
+CV text:
+"${text}"
+`,
+      temperature: 0.45
+    });
+
+    res.json({ success: true, improvedText });
+  } catch (err) {
+    console.error("AI IMPROVE ERROR:", err);
     res.status(500).json({ success: false, msg: "AI error" });
   }
 });

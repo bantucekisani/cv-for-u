@@ -183,6 +183,72 @@ async function callAI(url, body) {
 document.addEventListener("DOMContentLoaded", () => {
   console.log("CV JS LOADED");
 
+  document.title = "CV for U - AI CV Builder";
+
+  const appName = document.querySelector(".app-name");
+  if (appName && !appName.textContent.trim()) {
+    appName.textContent = "CV for U";
+  }
+
+  const quickBuilderHeading = document.querySelector(".ai-box h2");
+  if (quickBuilderHeading) {
+    quickBuilderHeading.textContent = "AI CV Assistant";
+  }
+
+  const quickBuilderCopy = document.querySelector(".ai-box p");
+  if (quickBuilderCopy) {
+    quickBuilderCopy.textContent =
+      "Give the assistant rough notes and it will build a first draft. Include your target role, years of experience, tools, industries, and achievements for the best result.";
+  }
+
+  if ($("aiInput")) {
+    $("aiInput").placeholder =
+      "Example: I am a cashier with 2 years of retail experience, strong customer service skills, till operations, stock counting, and daily cash-ups.";
+  }
+
+  if ($("aiBuildBtn")) {
+    $("aiBuildBtn").textContent = "Build Draft with AI";
+  }
+
+  if ($("fullAiCvBtn")) {
+    $("fullAiCvBtn").textContent = "Open Full AI Assistant";
+  }
+
+  const fullAiHeading = document.querySelector("#aiModal h2");
+  if (fullAiHeading) {
+    fullAiHeading.textContent = "AI Full CV Assistant";
+  }
+
+  const fullAiCopy = document.querySelector("#aiModal p");
+  if (fullAiCopy) {
+    fullAiCopy.textContent =
+      "Paste your work history, education, skills, and target role. The assistant will turn it into a stronger CV draft.";
+  }
+
+  if ($("aiFullInput")) {
+    $("aiFullInput").placeholder =
+      "Example: I worked 4 years as a retail assistant at Pick n Pay, handled stock and tills, trained new staff, and completed a retail management certificate.";
+  }
+
+  if ($("aiFullGenerateBtn")) {
+    $("aiFullGenerateBtn").textContent = "Build My CV Draft";
+  }
+
+  const coverHeading = document.querySelector("#coverLetterModal h2");
+  if (coverHeading) {
+    coverHeading.textContent = "AI Cover Letter Assistant";
+  }
+
+  const coverCopy = document.querySelector("#coverLetterModal p");
+  if (coverCopy) {
+    coverCopy.textContent =
+      "Paste the job post or describe the role. The assistant will tailor your cover letter to match it.";
+  }
+
+  if ($("downloadCoverPdf")) {
+    $("downloadCoverPdf").textContent = "Download Cover Letter (PDF)";
+  }
+
   /* ======================================
      🔁 HANDLE PAYFAST RETURN (CRITICAL)
   ====================================== */
@@ -347,7 +413,7 @@ inputPhoto.addEventListener("change", () => {
 
     previewPhoto.src = photoData;
 
-    setStatus("Photo updated ✓", "#16a34a");
+    setStatus("Photo updated", "#16a34a");
   };
 
   img.src = reader.result;
@@ -619,7 +685,7 @@ if ($("coverOutput")) {
   renderPreviewFromState();
 
   cvLoaded = true;
-  setStatus("CV loaded ✓", "#16a34a");
+  setStatus("CV loaded", "#16a34a");
 }
 
 
@@ -715,7 +781,7 @@ const timeout = setTimeout(() => controller.abort(), 20000);
     cvLoaded = true;
 
     if (!silent) {
-      setStatus("Saved ✓", "#16a34a");
+      setStatus("Saved", "#16a34a");
     }
 
     return true;
@@ -804,6 +870,8 @@ $("suggestSkillsBtn")?.addEventListener("click", async () => {
     if (data?.skills) {
       inputSkills.value = data.skills.join(", ");
       refreshSkills();
+      autoSave();
+      setStatus("Skills suggested ✓", "#16a34a");
     }
   } catch {
     alert("Skill suggestion failed");
@@ -819,7 +887,9 @@ $("suggestSkillsBtn")?.addEventListener("click", async () => {
     });
     if (data?.summary) {
       inputSummary.value = data.summary;
-      previewSummary.textContent = data.summary;
+      renderPreviewFromState();
+      autoSave();
+      setStatus("Summary suggested ✓", "#16a34a");
     }
   } catch {
     alert("Summary suggestion failed");
@@ -830,6 +900,9 @@ $("suggestSkillsBtn")?.addEventListener("click", async () => {
   function loadAI(data) {
     inputName.value = data.name || inputName.value;
     inputTitle.value = data.title || inputTitle.value;
+    inputEmail.value = data.email || inputEmail.value;
+    inputPhone.value = data.phone || inputPhone.value;
+    inputLocation.value = data.location || inputLocation.value;
     inputSummary.value = data.summary || inputSummary.value;
     if (Array.isArray(data.skills)) {
       inputSkills.value = data.skills.join(", ");
@@ -843,7 +916,245 @@ $("suggestSkillsBtn")?.addEventListener("click", async () => {
       educationList.innerHTML = "";
       data.education.forEach(createEducationBlock);
     }
+    renderPreviewFromState();
+    autoSave(200);
     setStatus("AI generated ✓", "#16a34a");
+  }
+
+  function isIOSDevice() {
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  }
+
+  function openDirectDownload(url) {
+    const link = document.createElement("a");
+    link.href = url;
+    link.target = "_blank";
+    link.rel = "noopener";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  }
+
+  async function saveCoverLetterDraft(coverLetterText = $("coverOutput")?.value || "") {
+    const coverLetter = String(coverLetterText || "").trim();
+
+    if (!currentCv._id || !coverLetter) {
+      return false;
+    }
+
+    const res = await fetch(`${API}/${currentCv._id}/cover-letter`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ coverLetter })
+    });
+
+    if (!res.ok) {
+      throw new Error("Cover letter save failed");
+    }
+
+    currentCv.coverLetter = coverLetter;
+    return true;
+  }
+
+  function decrementRemainingCount(fieldName) {
+    currentCv[fieldName] =
+      Math.max(0, Number(currentCv[fieldName] || 0) - 1);
+  }
+
+  function attachFixedDownloadHandlers() {
+    const currentCvDownloadBtn = document.getElementById("downloadPdfBtn");
+    if (currentCvDownloadBtn) {
+      const freshCvDownloadBtn = currentCvDownloadBtn.cloneNode(true);
+      currentCvDownloadBtn.replaceWith(freshCvDownloadBtn);
+
+      freshCvDownloadBtn.addEventListener("click", async () => {
+        if (!currentCv._id) {
+          alert("Please save your CV first");
+          return;
+        }
+
+        if (Number(currentCv.downloadsRemaining || 0) <= 0) {
+          window.location.href = `pay.html?type=cv&cv=${currentCv._id}`;
+          return;
+        }
+
+        const saved = await saveCV({ silent: true });
+
+        if (!saved) {
+          alert("Save failed. Please try again.");
+          return;
+        }
+
+        disableBtn("downloadPdfBtn", "Processing...");
+
+        const directUrl =
+          `${window.API_BASE}/api/pdf/cv/${currentCv._id}?token=${encodeURIComponent(token)}`;
+
+        if (isIOSDevice()) {
+          openDirectDownload(directUrl);
+          enableBtn("downloadPdfBtn", "Download CV (PDF)");
+          return;
+        }
+
+        let res;
+
+        try {
+          res = await fetch(`${window.API_BASE}/api/pdf/cv/${currentCv._id}`, {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          });
+        } catch (err) {
+          alert("Network error. Please try again.");
+          enableBtn("downloadPdfBtn", "Download CV (PDF)");
+          return;
+        }
+
+        if (res.status === 402) {
+          enableBtn("downloadPdfBtn", "Pay to download CV");
+          window.location.href = `pay.html?type=cv&cv=${currentCv._id}`;
+          return;
+        }
+
+        if (res.status === 401 || res.status === 403) {
+          logout();
+          return;
+        }
+
+        if (!res.ok) {
+          const err = await res.text();
+          console.error("PDF ERROR:", err);
+          enableBtn("downloadPdfBtn", "Download CV (PDF)");
+          return;
+        }
+
+        try {
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "CV.pdf";
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+
+          setTimeout(() => URL.revokeObjectURL(url), 5000);
+
+          decrementRemainingCount("downloadsRemaining");
+          updateDownloadCounter();
+          updateDownloadButton();
+        } catch (err) {
+          console.error("Download error:", err);
+          alert("Download failed");
+        }
+
+        enableBtn("downloadPdfBtn", "Download CV (PDF)");
+      });
+    }
+
+    const currentCoverDownloadBtn = document.getElementById("downloadCoverPdf");
+    if (currentCoverDownloadBtn) {
+      const freshCoverDownloadBtn = currentCoverDownloadBtn.cloneNode(true);
+      currentCoverDownloadBtn.replaceWith(freshCoverDownloadBtn);
+
+      freshCoverDownloadBtn.addEventListener("click", async () => {
+        if (!currentCv._id) {
+          alert("Please save your CV first");
+          return;
+        }
+
+        const coverText =
+          $("coverOutput")?.value?.trim() ||
+          String(currentCv.coverLetter || "").trim();
+
+        if (!coverText) {
+          alert("Generate your cover letter first");
+          return;
+        }
+
+        if (Number(currentCv.coverLettersRemaining || 0) <= 0) {
+          window.location.href = `pay.html?type=cover-letter&cv=${currentCv._id}`;
+          return;
+        }
+
+        try {
+          await saveCoverLetterDraft(coverText);
+        } catch (err) {
+          alert("Could not save your cover letter. Please try again.");
+          return;
+        }
+
+        disableBtn("downloadCoverPdf", "Processing...");
+
+        const directUrl =
+          `${window.API_BASE}/api/pdf/cover-letter/${currentCv._id}?token=${encodeURIComponent(token)}`;
+
+        if (isIOSDevice()) {
+          openDirectDownload(directUrl);
+          enableBtn("downloadCoverPdf", "Download Cover Letter");
+          return;
+        }
+
+        let res;
+
+        try {
+          res = await fetch(`${window.API_BASE}/api/pdf/cover-letter/${currentCv._id}`, {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          });
+        } catch (err) {
+          alert("Network error. Please try again.");
+          enableBtn("downloadCoverPdf", "Download Cover Letter");
+          return;
+        }
+
+        if (res.status === 402) {
+          enableBtn("downloadCoverPdf", "Pay to download Cover Letter");
+          window.location.href = `pay.html?type=cover-letter&cv=${currentCv._id}`;
+          return;
+        }
+
+        if (res.status === 401 || res.status === 403) {
+          logout();
+          return;
+        }
+
+        if (!res.ok) {
+          const err = await res.text();
+          console.error("COVER PDF ERROR:", err);
+          enableBtn("downloadCoverPdf", "Download Cover Letter");
+          return;
+        }
+
+        try {
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "Cover_Letter.pdf";
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+
+          setTimeout(() => URL.revokeObjectURL(url), 5000);
+
+          decrementRemainingCount("coverLettersRemaining");
+          updateCoverLetterCounter();
+        } catch (err) {
+          console.error("Download error:", err);
+          alert("Download failed");
+        }
+
+        enableBtn("downloadCoverPdf", "Download Cover Letter");
+      });
+    }
   }
 
   /* ================= COVER LETTER DOWNLOADS ================= */
@@ -880,14 +1191,8 @@ $("coverGenerateBtn")?.addEventListener("click", async () => {
     $("coverOutput").value = res.letter;
 
     // 🔥 SAVE TO DB
-    await fetch(`${API}/${currentCv._id}/cover-letter`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`
-      },
-      body: JSON.stringify({ coverLetter: res.letter })
-    });
+    await saveCoverLetterDraft(res.letter);
+    setStatus("Cover letter ready ✓", "#16a34a");
 
   } catch (err) {
     alert("Cover letter AI failed");
@@ -1066,6 +1371,7 @@ document.getElementById("downloadCoverPdf")
 });
 
 
+  attachFixedDownloadHandlers();
   if (!experienceList.children.length) createExperienceBlock();
   if (!educationList.children.length) createEducationBlock();
 });

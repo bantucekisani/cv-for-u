@@ -1,6 +1,30 @@
-// js/improve-cv.js
 document.addEventListener("DOMContentLoaded", () => {
-  const API_BASE = "http://192.168.101.251:5000"; // adjust if needed
+  document.title = "CV for U - Improve My CV";
+
+  const logo = document.querySelector(".logo");
+  if (logo) {
+    logo.src = "images/logo.png";
+  }
+
+  const appName = document.querySelector(".app-name");
+  if (appName) {
+    appName.textContent = "CV for U";
+  }
+
+  const storedUser = (() => {
+    try {
+      return JSON.parse(localStorage.getItem("user") || "null");
+    } catch {
+      return null;
+    }
+  })();
+
+  const token = storedUser?.token || null;
+
+  if (!token) {
+    window.location.href = "login.html";
+    return;
+  }
 
   const cvInput = document.getElementById("cvInput");
   const cvTone = document.getElementById("cvTone");
@@ -9,7 +33,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const improvedOutput = document.getElementById("improvedOutput");
   const copyBtn = document.getElementById("copyBtn");
 
-  improveBtn.addEventListener("click", async () => {
+  improveBtn?.addEventListener("click", async () => {
     const text = cvInput.value.trim();
     const tone = cvTone.value;
 
@@ -20,28 +44,36 @@ document.addEventListener("DOMContentLoaded", () => {
 
     improveBtn.disabled = true;
     improveBtn.textContent = "Improving...";
-    statusEl.textContent = "Sending your CV to CV for U AI...";
     copyBtn.disabled = true;
-    improvedOutput.innerHTML = "";
+    statusEl.textContent = "CV for U AI is improving your CV...";
+    improvedOutput.textContent = "";
 
     try {
-      const res = await fetch(`${API_BASE}/api/cv/improve`, {
+      const res = await fetch("/api/ai/improve-cv", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({ text, tone })
       });
 
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (res.status === 401 || res.status === 403) {
+        localStorage.removeItem("user");
+        localStorage.removeItem("lastCvId");
+        window.location.href = "login.html";
+        return;
+      }
+
       const data = await res.json();
 
-      if (!data.success) throw new Error(data.message || "AI error");
+      if (!res.ok || !data.success || !data.improvedText) {
+        throw new Error(data.msg || data.message || `HTTP ${res.status}`);
+      }
 
       improvedOutput.textContent = data.improvedText;
-      statusEl.textContent = "Done ✔ You can copy or edit the improved version.";
+      statusEl.textContent = "Improved CV ready. You can copy and refine it.";
       copyBtn.disabled = false;
-
     } catch (err) {
       console.error("Improve error:", err);
       statusEl.textContent = "Something went wrong while improving your CV.";
@@ -52,16 +84,18 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  copyBtn.addEventListener("click", () => {
+  copyBtn?.addEventListener("click", async () => {
     const text = improvedOutput.textContent.trim();
-    if (!text) return;
 
-    navigator.clipboard.writeText(text)
-      .then(() => {
-        statusEl.textContent = "Improved CV copied to clipboard ✅";
-      })
-      .catch(() => {
-        alert("Could not copy text. Please copy manually.");
-      });
+    if (!text) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(text);
+      statusEl.textContent = "Improved CV copied to clipboard.";
+    } catch {
+      alert("Could not copy text. Please copy manually.");
+    }
   });
 });

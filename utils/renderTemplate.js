@@ -177,7 +177,7 @@ function renderEducationSection(education = []) {
 
 function renderReferencesSection(references = [], referencesOnRequest = false) {
   const items = Array.isArray(references)
-    ? references.filter(item => item && (item.name || item.role || item.phone))
+    ? references.filter(item => item && (item.name || item.role || item.company || item.phone))
     : [];
 
   if (!items.length && !referencesOnRequest) {
@@ -190,7 +190,7 @@ function renderReferencesSection(references = [], referencesOnRequest = false) {
       ${referencesOnRequest ? `
         <p class="cv-empty">References available on request</p>
       ` : items.map(item => {
-        const meta = joinMeta([item.role, item.phone]);
+        const meta = joinMeta([item.role, item.company, item.phone]);
 
         return `
           <article class="cv-item cv-reference">

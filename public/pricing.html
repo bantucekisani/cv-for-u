@@ -10,13 +10,14 @@
 <body class="landing-body">
   <header class="topbar">
     <div class="topbar-left">
-      <img src="images/logo.png" class="logo" alt="CV for U logo">
-      <span class="app-name">CV for U</span>
+      <div class="brand">
+        <img src="images/logo.png" class="logo" alt="CV for U logo">
+        <span class="app-name">CV for U</span>
+      </div>
+      <button class="mobile-menu-btn" id="menuBtn" aria-label="Menu">
+        Menu
+      </button>
     </div>
-
-    <button class="mobile-menu-btn" id="menuBtn" aria-label="Menu">
-      Menu
-    </button>
 
     <nav class="topbar-right" id="mobileMenu">
       <a href="index.html" class="top-link">Home</a>
@@ -76,7 +77,7 @@
   </section>
 
   <footer class="landing-footer">
-    <p>(c) 2026 CV for U - Made in South Africa</p>
+    <p>Copyright 2026 CV for U - Made in South Africa</p>
 
     <div class="footer-links">
       <a href="privacy.html">Privacy Policy</a>
@@ -87,22 +88,6 @@
 
   <script src="js/api.js"></script>
   <script src="js/auth.js"></script>
-  <script>
-    const menuBtn = document.getElementById("menuBtn");
-    const mobileMenu = document.getElementById("mobileMenu");
-
-    menuBtn?.addEventListener("click", () => {
-      mobileMenu.classList.toggle("show");
-      menuBtn.textContent =
-        mobileMenu.classList.contains("show") ? "Close" : "Menu";
-    });
-
-    mobileMenu?.querySelectorAll("a").forEach(link => {
-      link.addEventListener("click", () => {
-        mobileMenu.classList.remove("show");
-        menuBtn.textContent = "Menu";
-      });
-    });
-  </script>
+  <script src="js/site.js"></script>
 </body>
 </html>

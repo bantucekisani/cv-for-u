@@ -8,47 +8,6 @@
   margin: 0;
 }
 
-/* TOPBAR REUSE STYLE */
-.topbar {
-  background: #ffffff;
-  padding: 12px 26px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.topbar-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.topbar-right {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.top-link {
-  color: #2563eb;
-  text-decoration: none;
-  font-weight: 600;
-}
-
-.primary-outline {
-  padding: 8px 14px;
-  border: 2px solid #2563eb;
-  border-radius: 8px;
-  color: #2563eb;
-  text-decoration: none;
-}
-
-.primary-outline:hover {
-  background: #2563eb;
-  color: #fff;
-}
-
 /* =========================================================
    MAIN CONTAINER
 ========================================================= */

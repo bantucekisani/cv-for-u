@@ -21,6 +21,7 @@ const EducationSchema = new mongoose.Schema({
 const ReferenceSchema = new mongoose.Schema({
   name: { type: String, default: "" },
   role: { type: String, default: "" },
+  company: { type: String, default: "" },
   phone: { type: String, default: "" }
 });
 

@@ -591,10 +591,15 @@ $("aiCloseBtn")?.addEventListener("click", () => {
       return;
     }
     [...referencesList.children].forEach(b => {
+      const role = b.querySelector(".ref-role").value.trim();
+      const company = b.querySelector(".ref-company").value.trim();
+      const phone = b.querySelector(".ref-phone").value || "Phone";
+      const roleAndCompany = [role, company].filter(Boolean).join(" - ") || "Role - Company";
+
       previewReferences.innerHTML += `
         <p><strong>${b.querySelector(".ref-name").value || "Name"}</strong><br>
-        ${b.querySelector(".ref-role").value || "Role"}<br>
-        ${b.querySelector(".ref-phone").value || "Phone"}</p>`;
+        ${roleAndCompany}<br>
+        ${phone}</p>`;
     });
   }
 
@@ -605,6 +610,7 @@ $("aiCloseBtn")?.addEventListener("click", () => {
     d.innerHTML = `
       <input class="ref-name" placeholder="Name" value="${data.name || ""}">
       <input class="ref-role" placeholder="Role" value="${data.role || ""}">
+      <input class="ref-company" placeholder="Company" value="${data.company || ""}">
       <input class="ref-phone" placeholder="Phone" value="${data.phone || ""}">
       <button class="small-btn danger-small">Remove</button><hr/>`;
     d.querySelector("button").onclick = () => {
@@ -793,6 +799,7 @@ async function saveCV({ silent = false } = {}) {
     references: [...referencesList.children].map(b => ({
         name: clean(b.querySelector(".ref-name").value),
         role: clean(b.querySelector(".ref-role").value),
+        company: clean(b.querySelector(".ref-company").value),
         phone: clean(b.querySelector(".ref-phone").value)
       })),
 

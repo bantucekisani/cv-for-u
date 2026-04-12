@@ -8,52 +8,8 @@
   <!-- Main Styles -->
   <link rel="stylesheet" href="css/cv.css" />
 
-  <!-- Mobile Header Fix -->
   <style>
-    /* ================= MOBILE NAV ================= */
-    .mobile-menu-btn {
-      display: none;
-      font-size: 22px;
-      background: none;
-      border: none;
-      cursor: pointer;
-    }
-
     @media (max-width: 768px) {
-      .topbar {
-        flex-wrap: wrap;
-        gap: 10px;
-      }
-
-      .topbar-left {
-        width: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-      }
-
-      .topbar-right {
-        display: none;
-        width: 100%;
-        flex-direction: column;
-        gap: 10px;
-        margin-top: 10px;
-      }
-
-      .topbar-right.show {
-        display: flex;
-      }
-
-      .topbar-right a {
-        text-align: center;
-        padding: 10px;
-      }
-
-      .mobile-menu-btn {
-        display: inline-block;
-      }
-
-      /* HERO */
       .hero {
         flex-direction: column;
         padding: 32px 16px;
@@ -86,7 +42,7 @@
   <div class="topbar-left">
     <div class="brand">
       <img src="images/logo.png" class="logo" alt="CV for U logo" />
-      <span class="app-name"></span>
+      <span class="app-name">CV for U</span>
     </div>
 
     <button class="mobile-menu-btn" id="menuBtn" aria-label="Menu">
@@ -276,26 +232,10 @@
 </footer>
 
 <!-- ================= SCRIPTS ================= -->
+<script src="js/site.js"></script>
 <script>
   document.addEventListener("DOMContentLoaded", () => {
-
-    const menuBtn = document.getElementById("menuBtn");
-    const mobileMenu = document.getElementById("mobileMenu");
     const createBtn = document.getElementById("createCvBtn");
-
-    /* ---------- MOBILE MENU ---------- */
-    if (menuBtn && mobileMenu) {
-      menuBtn.addEventListener("click", () => {
-        mobileMenu.classList.toggle("show");
-      });
-
-      // Auto-close menu when a link is clicked
-      mobileMenu.querySelectorAll("a").forEach(link => {
-        link.addEventListener("click", () => {
-          mobileMenu.classList.remove("show");
-        });
-      });
-    }
 
     /* ---------- AUTH GUARD ---------- */
     function requireAuth(target) {
@@ -317,3 +257,5 @@
   });
   
 </script>
+</body>
+</html>

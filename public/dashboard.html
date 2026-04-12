@@ -2,70 +2,38 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>My Dashboard – </title>
+  <title>Dashboard - CV for U</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <!-- CSS ONLY -->
   <link rel="stylesheet" href="css/cv.css">
   <link rel="stylesheet" href="css/dashboard.css">
 </head>
 
 <body class="dashboard-body">
-
-  <!-- TOP BAR -->
   <header class="topbar">
-  <div class="topbar-left">
-    <img src="images/logo.png" class="logo" alt="CV for U logo">
-  
-  </div>
+    <div class="topbar-left">
+      <div class="brand">
+        <img src="images/logo.png" class="logo" alt="CV for U logo">
+        <span class="app-name">CV for U</span>
+      </div>
+      <button class="mobile-menu-btn" id="menuBtn" aria-label="Menu">Menu</button>
+    </div>
 
-  <!-- MOBILE MENU BUTTON -->
-  <button class="mobile-menu-btn" id="menuBtn" aria-label="Menu">
-    ☰
-  </button>
-
-  <!-- NAVIGATION -->
-  <nav class="topbar-right" id="mobileMenu">
-    <a href="create-cv.html" class="top-link">Create CV</a>
-    <a href="#" id="logoutBtn" class="top-link primary-outline">Logout</a>
-  </nav>
-</header>
-
+    <nav class="topbar-right" id="mobileMenu">
+      <a href="dashboard.html" class="top-link">Dashboard</a>
+      <a href="create-cv.html" class="top-link">Create CV</a>
+      <a href="#" id="logoutBtn" class="primary-outline">Logout</a>
+    </nav>
+  </header>
 
   <section class="dashboard-container">
     <h1 class="dash-title">My CVs</h1>
     <p class="dash-sub">Manage, edit and download your saved CVs.</p>
     <div id="cvList" class="cv-list-grid"></div>
   </section>
-<script>
-  document.addEventListener("DOMContentLoaded", () => {
-    const menuBtn = document.getElementById("menuBtn");
-    const mobileMenu = document.getElementById("mobileMenu");
 
-    if (!menuBtn || !mobileMenu) return;
-
-    // Toggle menu
-    menuBtn.addEventListener("click", () => {
-      mobileMenu.classList.toggle("show");
-      menuBtn.textContent = mobileMenu.classList.contains("show")
-        ? "✕"
-        : "☰";
-    });
-
-    // Close menu when clicking a link
-    mobileMenu.querySelectorAll("a").forEach(link => {
-      link.addEventListener("click", () => {
-        mobileMenu.classList.remove("show");
-        menuBtn.textContent = "☰";
-      });
-    });
-  });
-</script>
-
-  <!-- 🔥 JS LOAD ORDER (CRITICAL) -->
+  <script src="js/site.js"></script>
   <script src="js/api.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/dashboard.js"></script>
-
 </body>
 </html>

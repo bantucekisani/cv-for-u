@@ -175,3 +175,47 @@
 .signup-link:hover {
   text-decoration: underline;
 }
+
+.password-field {
+  position: relative;
+}
+
+.password-toggle-input {
+  padding-right: 64px;
+}
+
+.password-toggle-input::-ms-reveal,
+.password-toggle-input::-ms-clear {
+  display: none;
+}
+
+.password-toggle-btn {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  min-width: 44px;
+  padding: 4px 0 4px 8px;
+  border: none;
+  background: transparent;
+  color: #144f9b;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  touch-action: manipulation;
+}
+
+.password-toggle-btn:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+@media (max-width: 900px) {
+  .password-toggle-btn {
+    right: 10px;
+  }
+}

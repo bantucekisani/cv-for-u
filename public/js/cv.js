@@ -537,7 +537,8 @@ $("aiCloseBtn")?.addEventListener("click", () => {
       <input class="edu-qualification" placeholder="Qualification" value="${data.qualification || ""}">
       <input class="edu-institution" placeholder="Institution" value="${data.institution || ""}">
       <input class="edu-location" placeholder="Location" value="${data.location || ""}">
-      <input class="edu-year" placeholder="Year" value="${data.year || ""}">
+      <input class="edu-year" placeholder="Dates attended or expected completion" value="${data.year || ""}">
+      <p class="helper-text edu-help">Example: 2021 - 2024, Jan 2023 - Present, or Expected 2027</p>
       <button class="small-btn danger-small">Remove</button><hr/>`;
     d.querySelector("button").onclick = () => { d.remove(); refreshEducationPreview(); };
     d.addEventListener("input", refreshEducationPreview);

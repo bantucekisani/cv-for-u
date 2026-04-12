@@ -59,7 +59,68 @@ function setMessage(element, message, type = "error") {
   }
 }
 
+function setupPasswordToggles() {
+  const passwordInputs = document.querySelectorAll('input[type="password"]');
+
+  passwordInputs.forEach((input, index) => {
+    if (input.dataset.passwordToggleReady === "true") {
+      return;
+    }
+
+    input.dataset.passwordToggleReady = "true";
+    input.classList.add("password-toggle-input");
+
+    if (!input.id) {
+      input.id = `passwordField${index + 1}`;
+    }
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "password-field";
+    input.parentNode.insertBefore(wrapper, input);
+    wrapper.appendChild(input);
+
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = "password-toggle-btn";
+    toggle.textContent = "Show";
+    toggle.setAttribute("aria-controls", input.id);
+    toggle.setAttribute("aria-label", "Show password");
+    toggle.setAttribute("aria-pressed", "false");
+
+    toggle.addEventListener("click", () => {
+      const nextType = input.type === "password" ? "text" : "password";
+      const selectionStart = input.selectionStart;
+      const selectionEnd = input.selectionEnd;
+      const hadFocus = document.activeElement === input;
+
+      input.type = nextType;
+
+      const isVisible = nextType === "text";
+      toggle.textContent = isVisible ? "Hide" : "Show";
+      toggle.setAttribute("aria-label", isVisible ? "Hide password" : "Show password");
+      toggle.setAttribute("aria-pressed", String(isVisible));
+
+      if (hadFocus) {
+        try {
+          input.focus({ preventScroll: true });
+        } catch {
+          input.focus();
+        }
+        if (selectionStart !== null && selectionEnd !== null) {
+          try {
+            input.setSelectionRange(selectionStart, selectionEnd);
+          } catch {}
+        }
+      }
+    });
+
+    wrapper.appendChild(toggle);
+  });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
+  setupPasswordToggles();
+
   const signupForm = document.getElementById("signupForm");
   if (signupForm) {
     signupForm.addEventListener("submit", async (e) => {

@@ -1,200 +1,248 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Admin Dashboard – CV for U</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <link rel="stylesheet" href="css/cv.css" />
-
-  <style>
-    body {
-      background: #f4f6fb;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont;
-    }
-
-    .admin-container {
-      max-width: 1100px;
-      margin: 40px auto;
-      padding: 0 20px;
-    }
-
-    .admin-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 30px;
-    }
-
-    .admin-header h1 {
-      font-size: 28px;
-      font-weight: 700;
-    }
-
-    .back-link {
-      font-size: 14px;
-      color: #2563eb;
-      text-decoration: none;
-    }
-
-    /* ===== STATS GRID ===== */
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 20px;
-      margin-bottom: 40px;
-    }
-
-    .stat-card {
-      background: #fff;
-      border-radius: 14px;
-      padding: 22px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.05);
-    }
-
-    .stat-label {
-      font-size: 13px;
-      color: #6b7280;
-      margin-bottom: 6px;
-    }
-
-    .stat-value {
-      font-size: 28px;
-      font-weight: 700;
-      color: #111827;
-    }
-
-    .stat-money {
-      color: #16a34a;
-    }
-
-    /* ===== USERS TABLE ===== */
-    .table-card {
-      background: #fff;
-      border-radius: 14px;
-      padding: 20px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.05);
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-
-    th {
-      text-align: left;
-      font-size: 13px;
-      color: #6b7280;
-      padding-bottom: 10px;
-      border-bottom: 1px solid #e5e7eb;
-    }
-
-    td {
-      padding: 14px 0;
-      border-bottom: 1px solid #f1f5f9;
-      font-size: 14px;
-    }
-
-    .role-badge {
-      padding: 4px 10px;
-      border-radius: 999px;
-      font-size: 12px;
-      font-weight: 600;
-      display: inline-block;
-    }
-
-    .role-admin {
-      background: #fee2e2;
-      color: #991b1b;
-    }
-
-    .role-user {
-      background: #e0e7ff;
-      color: #1e3a8a;
-    }
-  </style>
+  <meta charset="UTF-8">
+  <title>Admin Dashboard - CV for U</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="css/cv.css">
+  <link rel="stylesheet" href="css/admin.css">
 </head>
 
-<body>
-
-  <div class="admin-container">
-
-    <div class="admin-header">
-      <h1>📊 Admin Dashboard</h1>
-      <a href="dashboard.html" class="back-link">← Back</a>
-    </div>
-
-    <!-- STATS -->
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-label">Total Users</div>
-        <div class="stat-value" id="statUsers">–</div>
+<body class="admin-body">
+  <main class="admin-shell">
+    <section class="admin-hero">
+      <div>
+        <p class="admin-kicker">Admin Overview</p>
+        <h1>Revenue and platform dashboard</h1>
+        <p class="admin-sub">
+          Track sales, user growth, and payment activity from one place.
+        </p>
       </div>
 
-      <div class="stat-card">
-        <div class="stat-label">Total CVs</div>
-        <div class="stat-value" id="statCVs">–</div>
+      <div class="admin-actions">
+        <p class="last-updated" id="lastUpdated">Loading dashboard...</p>
+        <a href="dashboard.html" class="back-link">Back to dashboard</a>
+      </div>
+    </section>
+
+    <section class="metric-grid" aria-label="Key metrics">
+      <article class="metric-card">
+        <p class="metric-label">Total users</p>
+        <h2 class="metric-value" id="statUsers">-</h2>
+        <p class="metric-foot">All registered accounts</p>
+      </article>
+
+      <article class="metric-card">
+        <p class="metric-label">New users this month</p>
+        <h2 class="metric-value" id="statUsersThisMonth">-</h2>
+        <p class="metric-foot">Monthly signup pace</p>
+      </article>
+
+      <article class="metric-card">
+        <p class="metric-label">Total CVs</p>
+        <h2 class="metric-value" id="statCVs">-</h2>
+        <p class="metric-foot">Saved CV documents</p>
+      </article>
+
+      <article class="metric-card">
+        <p class="metric-label">Paid CVs</p>
+        <h2 class="metric-value" id="statPaid">-</h2>
+        <p class="metric-foot">Paid CV unlocks</p>
+      </article>
+
+      <article class="metric-card metric-card-strong">
+        <p class="metric-label">Total revenue</p>
+        <h2 class="metric-value" id="statRevenue">-</h2>
+        <p class="metric-foot">Completed payments only</p>
+      </article>
+
+      <article class="metric-card">
+        <p class="metric-label">Revenue today</p>
+        <h2 class="metric-value" id="statRevenueToday">-</h2>
+        <p class="metric-foot">Daily cash flow snapshot</p>
+      </article>
+
+      <article class="metric-card">
+        <p class="metric-label">Revenue this month</p>
+        <h2 class="metric-value" id="statRevenueMonth">-</h2>
+        <p class="metric-foot">Current month earnings</p>
+      </article>
+
+      <article class="metric-card">
+        <p class="metric-label">Average order value</p>
+        <h2 class="metric-value" id="statAverageOrder">-</h2>
+        <p class="metric-foot">Average completed sale</p>
+      </article>
+    </section>
+
+    <section class="analytics-grid">
+      <article class="panel panel-wide">
+        <div class="panel-head">
+          <div>
+            <p class="panel-kicker">Trend</p>
+            <h2>Revenue in the last 14 days</h2>
+          </div>
+          <p class="panel-meta" id="revenueDayMeta">-</p>
+        </div>
+        <div id="revenueDayChart" class="bar-chart"></div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <p class="panel-kicker">Trend</p>
+            <h2>Revenue by month</h2>
+          </div>
+          <p class="panel-meta" id="revenueMonthMeta">-</p>
+        </div>
+        <div id="revenueMonthChart" class="bar-chart compact-chart"></div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <p class="panel-kicker">Growth</p>
+            <h2>User growth by month</h2>
+          </div>
+          <p class="panel-meta" id="userGrowthMeta">-</p>
+        </div>
+        <div id="userGrowthChart" class="bar-chart compact-chart"></div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <p class="panel-kicker">Mix</p>
+            <h2>Revenue by product</h2>
+          </div>
+          <p class="panel-meta">Share of completed sales</p>
+        </div>
+        <div id="paymentTypeBreakdown" class="type-breakdown"></div>
+      </article>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head panel-head-stack">
+        <div>
+          <p class="panel-kicker">Payments</p>
+          <h2>Filter and export payments</h2>
+          <p class="panel-copy">
+            Narrow the list by product and date range, then export the filtered result to CSV.
+          </p>
+        </div>
       </div>
 
-      <div class="stat-card">
-        <div class="stat-label">Paid CVs</div>
-        <div class="stat-value" id="statPaid">–</div>
+      <form id="paymentFilters" class="filter-grid">
+        <label class="filter-field">
+          <span>Type</span>
+          <select id="filterType">
+            <option value="all">All payments</option>
+            <option value="cv">CV only</option>
+            <option value="cover-letter">Cover letter only</option>
+          </select>
+        </label>
+
+        <label class="filter-field">
+          <span>From</span>
+          <input type="date" id="filterFrom">
+        </label>
+
+        <label class="filter-field">
+          <span>To</span>
+          <input type="date" id="filterTo">
+        </label>
+
+        <label class="filter-field">
+          <span>Rows</span>
+          <select id="filterLimit">
+            <option value="25">25</option>
+            <option value="50" selected>50</option>
+            <option value="100">100</option>
+            <option value="250">250</option>
+          </select>
+        </label>
+
+        <div class="filter-actions">
+          <button type="submit" class="primary-btn">Apply filters</button>
+          <button type="button" class="secondary-btn admin-secondary" id="resetFilters">Reset</button>
+          <button type="button" class="secondary-btn admin-secondary" id="exportPaymentsBtn">Export CSV</button>
+        </div>
+      </form>
+
+      <div class="summary-strip" aria-label="Filtered payment summary">
+        <article class="summary-chip">
+          <span>Filtered revenue</span>
+          <strong id="paymentsRevenue">-</strong>
+        </article>
+
+        <article class="summary-chip">
+          <span>Payments</span>
+          <strong id="paymentsCount">-</strong>
+        </article>
+
+        <article class="summary-chip">
+          <span>CV sales</span>
+          <strong id="paymentsCvCount">-</strong>
+        </article>
+
+        <article class="summary-chip">
+          <span>Cover letter sales</span>
+          <strong id="paymentsCoverCount">-</strong>
+        </article>
       </div>
 
-      <div class="stat-card">
-        <div class="stat-label">Total Revenue</div>
-        <div class="stat-value stat-money" id="statRevenue">–</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Email</th>
+              <th>Type</th>
+              <th>Amount</th>
+              <th>Provider</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody id="paymentsTable"></tbody>
+        </table>
       </div>
-    </div>
 
-    <!-- USERS -->
-    <div class="table-card">
-      <h2 style="margin-bottom:16px">Recent Users</h2>
+      <p class="empty-state hidden" id="paymentsEmpty">
+        No payments match the current filters.
+      </p>
+    </section>
 
-      <table>
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Email</th>
-            <th>Role</th>
-            <th>Joined</th>
-          </tr>
-        </thead>
-        <tbody id="usersTable"></tbody>
-      </table>
-    </div>
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <p class="panel-kicker">Users</p>
+          <h2>Recent users</h2>
+        </div>
+        <p class="panel-meta">Latest 12 accounts</p>
+      </div>
 
-  </div>
-<div class="table-card" style="margin-top:40px">
-  <h2 style="margin-bottom:16px">Payments</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Joined</th>
+            </tr>
+          </thead>
+          <tbody id="usersTable"></tbody>
+        </table>
+      </div>
 
-  <table>
-    <thead>
-      <tr>
-        <th>User</th>
-        <th>Email</th>
-        <th>Type</th>
-        <th>Amount</th>
-        <th>Date</th>
-      </tr>
-    </thead>
-    <tbody id="paymentsTable"></tbody>
-  </table>
-</div>
-<div class="table-card" style="margin-top:40px">
-  <h2>Revenue by Day</h2>
-  <ul id="dailyRevenue"></ul>
-</div>
+      <p class="empty-state hidden" id="usersEmpty">
+        No users found yet.
+      </p>
+    </section>
+  </main>
 
-<div class="table-card" style="margin-top:40px">
-  <h2>Revenue by Month</h2>
-  <ul id="monthlyRevenue"></ul>
-</div>
-
-  <!-- SCRIPTS -->
   <script src="js/api.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/admin.js"></script>
-
 </body>
 </html>

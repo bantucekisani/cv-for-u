@@ -38,19 +38,16 @@
 }
 
 .auth-logo {
-  width: 68px;
-  height: 68px;
+  display: block;
+  width: clamp(132px, 44vw, 180px);
+  height: auto;
+  max-width: 100%;
   object-fit: contain;
-  margin-bottom: 14px;
+  margin: 0 auto 16px;
 }
 
 .auth-eyebrow {
-  margin: 0 0 8px;
-  color: #2563eb;
-  font-size: 0.82rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  display: none;
 }
 
 .auth-card h1,

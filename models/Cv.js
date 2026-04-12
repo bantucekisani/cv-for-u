@@ -58,6 +58,7 @@ const CVSchema = new mongoose.Schema(
 
     /* ===== REFERENCES ===== */
     references: { type: [ReferenceSchema], default: [] },
+    referencesOnRequest: { type: Boolean, default: false },
 
     /* ===== TEMPLATE & DESIGN ===== */
     template: { type: String, default: "templateA" },

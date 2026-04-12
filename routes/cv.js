@@ -72,6 +72,7 @@ router.post("/save", auth, async (req, res) => {
     cv.experience = Array.isArray(body.experience) ? body.experience : [];
     cv.education = Array.isArray(body.education) ? body.education : [];
     cv.references = Array.isArray(body.references) ? body.references : [];
+    cv.referencesOnRequest = body.referencesOnRequest === true;
 
     /* ===== DESIGN ===== */
     cv.template = body.template || "templateA";

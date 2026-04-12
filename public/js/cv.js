@@ -74,6 +74,11 @@ function clean(value) {
     .trim();
 }
 
+function touchCv(delay = 800) {
+  setTyping();
+  autoSave(delay);
+}
+
 async function safeJson(res) {
   const text = await res.text();
 
@@ -362,15 +367,15 @@ autoSave();
 
 
   $("addExperienceBtn")?.addEventListener("click", () => {
-  createExperienceBlock();
+  createExperienceBlock({}, { triggerSave: true });
 });
 
 $("addEducationBtn")?.addEventListener("click", () => {
-  createEducationBlock();
+  createEducationBlock({}, { triggerSave: true });
 });
 
 $("addReferenceBtn")?.addEventListener("click", () => {
-  createReferenceBlock();
+  createReferenceBlock({}, { triggerSave: true });
 });
 
 
@@ -414,6 +419,7 @@ inputPhoto.addEventListener("change", () => {
     previewPhoto.src = photoData;
 
     setStatus("Photo updated", "#16a34a");
+    autoSave(200);
   };
 
   img.src = reader.result;
@@ -436,8 +442,14 @@ inputPhoto.addEventListener("change", () => {
 }
 
   
-  templateSelect.onchange = applyTemplateAndColor;
-colorSelect.onchange = applyTemplateAndColor;
+  templateSelect.onchange = () => {
+  applyTemplateAndColor();
+  touchCv(200);
+};
+colorSelect.onchange = () => {
+  applyTemplateAndColor();
+  touchCv(200);
+};
 
 
 
@@ -476,7 +488,10 @@ $("aiCloseBtn")?.addEventListener("click", () => {
         previewSkills.appendChild(li);
       });
   }
-  inputSkills.addEventListener("input", refreshSkills);
+  inputSkills.addEventListener("input", () => {
+    refreshSkills();
+    touchCv();
+  });
 
   /* ================= EXPERIENCE ================= */
   function refreshExperiencePreview() {
@@ -495,7 +510,8 @@ $("aiCloseBtn")?.addEventListener("click", () => {
     });
   }
 
-  function createExperienceBlock(data = {}) {
+  function createExperienceBlock(data = {}, options = {}) {
+    const { triggerSave = false } = options;
     const d = document.createElement("div");
     d.className = "exp-block";
     d.innerHTML = `
@@ -512,10 +528,20 @@ $("aiCloseBtn")?.addEventListener("click", () => {
   <textarea class="exp-bullets" placeholder="• Duties\n• Achievements">${(data.bullets || []).join("\n")}</textarea>
   <button class="small-btn danger-small">Remove</button><hr/>`;
 
-    d.querySelector("button").onclick = () => { d.remove(); refreshExperiencePreview(); };
-    d.addEventListener("input", refreshExperiencePreview);
+    d.querySelector("button").onclick = () => {
+      d.remove();
+      refreshExperiencePreview();
+      touchCv(200);
+    };
+    d.addEventListener("input", () => {
+      refreshExperiencePreview();
+      touchCv();
+    });
     experienceList.appendChild(d);
     refreshExperiencePreview();
+    if (triggerSave) {
+      touchCv(200);
+    }
   }
 
   /* ================= EDUCATION ================= */
@@ -530,7 +556,8 @@ $("aiCloseBtn")?.addEventListener("click", () => {
     });
   }
 
-  function createEducationBlock(data = {}) {
+  function createEducationBlock(data = {}, options = {}) {
+    const { triggerSave = false } = options;
     const d = document.createElement("div");
     d.className = "edu-block";
     d.innerHTML = `
@@ -540,10 +567,20 @@ $("aiCloseBtn")?.addEventListener("click", () => {
       <input class="edu-year" placeholder="Dates attended or expected completion" value="${data.year || ""}">
       <p class="helper-text edu-help">Example: 2021 - 2024, Jan 2023 - Present, or Expected 2027</p>
       <button class="small-btn danger-small">Remove</button><hr/>`;
-    d.querySelector("button").onclick = () => { d.remove(); refreshEducationPreview(); };
-    d.addEventListener("input", refreshEducationPreview);
+    d.querySelector("button").onclick = () => {
+      d.remove();
+      refreshEducationPreview();
+      touchCv(200);
+    };
+    d.addEventListener("input", () => {
+      refreshEducationPreview();
+      touchCv();
+    });
     educationList.appendChild(d);
     refreshEducationPreview();
+    if (triggerSave) {
+      touchCv(200);
+    }
   }
 
   /* ================= REFERENCES ================= */
@@ -561,7 +598,8 @@ $("aiCloseBtn")?.addEventListener("click", () => {
     });
   }
 
-  function createReferenceBlock(data = {}) {
+  function createReferenceBlock(data = {}, options = {}) {
+    const { triggerSave = false } = options;
     const d = document.createElement("div");
     d.className = "ref-block";
     d.innerHTML = `
@@ -569,13 +607,26 @@ $("aiCloseBtn")?.addEventListener("click", () => {
       <input class="ref-role" placeholder="Role" value="${data.role || ""}">
       <input class="ref-phone" placeholder="Phone" value="${data.phone || ""}">
       <button class="small-btn danger-small">Remove</button><hr/>`;
-    d.querySelector("button").onclick = () => { d.remove(); refreshReferencesPreview(); };
-    d.addEventListener("input", refreshReferencesPreview);
+    d.querySelector("button").onclick = () => {
+      d.remove();
+      refreshReferencesPreview();
+      touchCv(200);
+    };
+    d.addEventListener("input", () => {
+      refreshReferencesPreview();
+      touchCv();
+    });
     referencesList.appendChild(d);
     refreshReferencesPreview();
+    if (triggerSave) {
+      touchCv(200);
+    }
   }
 
-  refOnRequest.onchange = refreshReferencesPreview;
+  refOnRequest.onchange = () => {
+    refreshReferencesPreview();
+    touchCv(200);
+  };
 
   
 
@@ -667,6 +718,7 @@ if ($("coverOutput")) {
   inputLocation.value = cv.location || "";
   inputSummary.value = cv.summary || "";
   inputSkills.value = (cv.skills || []).join(", ");
+  refOnRequest.checked = cv.referencesOnRequest === true;
 
   // DESIGN
   templateSelect.value = cv.template || "templateA";
@@ -738,12 +790,13 @@ async function saveCV({ silent = false } = {}) {
       year: clean(b.querySelector(".edu-year").value)
     })),
 
-    references: refOnRequest.checked ? [] :
-      [...referencesList.children].map(b => ({
+    references: [...referencesList.children].map(b => ({
         name: clean(b.querySelector(".ref-name").value),
         role: clean(b.querySelector(".ref-role").value),
         phone: clean(b.querySelector(".ref-phone").value)
-      }))
+      })),
+
+    referencesOnRequest: refOnRequest.checked
   };
 
   try {

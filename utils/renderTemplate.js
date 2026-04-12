@@ -1,167 +1,230 @@
-module.exports = function renderCvHTML(cv) {
-  // ===============================
-  // DEBUG (keep for now)
-  // ===============================
-  console.log("📌 CV TEMPLATE:", cv.template);
-  console.log("📌 CV COLOR:", cv.color);
-  console.log("📌 REFERENCES RAW DATA:", cv.references);
+const ALLOWED_TEMPLATES = new Set([
+  "templateA",
+  "templateB",
+  "templateC",
+  "templateD",
+  "templateE",
+  "templateF",
+  "templateG",
+  "templateH"
+]);
 
-  // ===============================
-  // SAFETY HELPERS
-  // ===============================
-  const esc = str =>
-    String(str || "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;");
+const ALLOWED_COLORS = new Set([
+  "blue",
+  "grey",
+  "black",
+  "teal",
+  "gold"
+]);
 
-  const safeSummary =
-    cv.summary && !/(\d+\s+years?)/i.test(cv.summary)
-      ? esc(cv.summary)
-      : cv.summary
-        ? "Qualified professional with experience in the listed skills and roles."
-        : "";
+function esc(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
 
-  const skills =
-    Array.isArray(cv.skills)
-      ? cv.skills
-          .map(s => s && s.trim())
-          .filter(Boolean)
-      : [];
+function formatText(value) {
+  return esc(value).replace(/\r?\n/g, "<br>");
+}
 
-  const hasReferences =
-    Array.isArray(cv.references) && cv.references.length;
+function sanitiseTemplate(value) {
+  return ALLOWED_TEMPLATES.has(value) ? value : "templateA";
+}
 
-  const showReferencesSection =
-    hasReferences || cv.referencesOnRequest === true;
+function sanitiseColor(value) {
+  return ALLOWED_COLORS.has(value) ? value : "blue";
+}
 
-  // ===============================
-  // TEMPLATE
-  // ===============================
+function joinMeta(parts = []) {
+  return parts
+    .filter(Boolean)
+    .map(part => esc(part))
+    .join(" <span class=\"cv-meta-separator\">&middot;</span> ");
+}
+
+function renderPhoto(photo) {
+  if (!photo) {
+    return "";
+  }
+
   return `
-<div class="cv-preview ${cv.template || "templateA"} color-${cv.color || "blue"}">
+    <div class="cv-photo-wrapper">
+      <img src="${esc(photo)}" alt="Profile photo">
+    </div>
+  `;
+}
 
-  <!-- ================= SIDEBAR ================= -->
-  <aside class="cv-sidebar">
+function renderContactSection(cv) {
+  const items = [cv.email, cv.phone, cv.location].filter(Boolean);
 
-    ${cv.photo ? `
-      <div class="cv-photo-wrapper">
-        <img src="${esc(cv.photo)}" alt="Profile photo" />
-      </div>
-    ` : ""}
+  if (!items.length) {
+    return "";
+  }
 
-    ${(cv.email || cv.phone || cv.location) ? `
-      <div class="cv-sidebar-section">
-        <h3>Contact</h3>
-        ${cv.email ? `<p>${esc(cv.email)}</p>` : ""}
-        ${cv.phone ? `<p>${esc(cv.phone)}</p>` : ""}
-        ${cv.location ? `<p>${esc(cv.location)}</p>` : ""}
-      </div>
-    ` : ""}
+  return `
+    <div class="cv-sidebar-section">
+      <h3>Contact</h3>
+      ${items.map(item => `<p>${esc(item)}</p>`).join("")}
+    </div>
+  `;
+}
 
-    ${skills.length ? `
-      <div class="cv-sidebar-section">
-        <h3>Skills</h3>
-        <ul>
-          ${skills.map(skill => `<li>${esc(skill)}</li>`).join("")}
-        </ul>
-      </div>
-    ` : ""}
+function renderSkillsSection(skills = []) {
+  const cleanedSkills = Array.isArray(skills)
+    ? skills.map(skill => String(skill || "").trim()).filter(Boolean)
+    : [];
 
-  </aside>
+  if (!cleanedSkills.length) {
+    return "";
+  }
 
-  <!-- ================= MAIN ================= -->
-  <section class="cv-main">
+  return `
+    <div class="cv-sidebar-section">
+      <h3>Core Skills</h3>
+      <ul class="cv-sidebar-list">
+        ${cleanedSkills.map(skill => `<li>${esc(skill)}</li>`).join("")}
+      </ul>
+    </div>
+  `;
+}
 
-    <header class="cv-header">
-      <h1>${esc(cv.name)}</h1>
-      ${cv.title ? `<div class="cv-title">${esc(cv.title)}</div>` : ""}
-    </header>
+function renderSummarySection(summary) {
+  const text = String(summary || "").trim();
 
-    ${safeSummary ? `
-      <section class="cv-block cv-section">
-        <h2>Profile</h2>
-        <p>${safeSummary}</p>
-      </section>
-    ` : ""}
+  if (!text) {
+    return "";
+  }
 
-    ${Array.isArray(cv.experience) && cv.experience.length ? `
-      <section class="cv-block cv-section">
-        <h2>Experience</h2>
-        ${cv.experience.map(exp => `
-          <article class="cv-item">
-            <h3>
-              ${esc(exp.title)}
-              ${exp.company ? ` – ${esc(exp.company)}` : ""}
-            </h3>
-            ${Array.isArray(exp.bullets) && exp.bullets.length ? `
+  return `
+    <section class="cv-block cv-section">
+      <h2>Profile</h2>
+      <p>${formatText(text)}</p>
+    </section>
+  `;
+}
+
+function renderExperienceSection(experience = []) {
+  const items = Array.isArray(experience)
+    ? experience.filter(item => item && (item.title || item.company || item.dates || (item.bullets || []).length))
+    : [];
+
+  if (!items.length) {
+    return "";
+  }
+
+  return `
+    <section class="cv-block cv-section">
+      <h2>Experience</h2>
+      ${items.map(item => {
+        const title = item.title || item.company || "Experience";
+        const meta = joinMeta([
+          item.title ? item.company : "",
+          item.location,
+          item.dates
+        ]);
+        const bullets = Array.isArray(item.bullets)
+          ? item.bullets.map(bullet => String(bullet || "").trim()).filter(Boolean)
+          : [];
+
+        return `
+          <article class="cv-item cv-experience-item">
+            <h3>${esc(title)}</h3>
+            ${meta ? `<p class="cv-meta">${meta}</p>` : ""}
+            ${bullets.length ? `
               <ul>
-                ${exp.bullets
-                  .map(b => `<li>${esc(b)}</li>`)
-                  .join("")}
+                ${bullets.map(bullet => `<li>${esc(bullet)}</li>`).join("")}
               </ul>
             ` : ""}
           </article>
-        `).join("")}
-      </section>
-    ` : ""}
+        `;
+      }).join("")}
+    </section>
+  `;
+}
 
-    ${Array.isArray(cv.education) && cv.education.length ? `
-      <section class="cv-block cv-section">
-        <h2>Education</h2>
-        ${cv.education.map(edu => `
-          <article class="cv-item">
-            <h3>
-              ${esc(edu.qualification)}
-              ${edu.institution ? ` – ${esc(edu.institution)}` : ""}
-            </h3>
-            ${(edu.location || edu.year) ? `
-              <p class="cv-meta">
-                ${edu.location ? esc(edu.location) : ""}
-                ${edu.location && edu.year ? " • " : ""}
-                ${edu.year ? esc(edu.year) : ""}
-              </p>
-            ` : ""}
+function renderEducationSection(education = []) {
+  const items = Array.isArray(education)
+    ? education.filter(item => item && (item.qualification || item.institution || item.location || item.year))
+    : [];
+
+  if (!items.length) {
+    return "";
+  }
+
+  return `
+    <section class="cv-block cv-section">
+      <h2>Education</h2>
+      ${items.map(item => {
+        const title = item.qualification || item.institution || "Education";
+        const meta = joinMeta([
+          item.qualification ? item.institution : "",
+          item.location,
+          item.year
+        ]);
+
+        return `
+          <article class="cv-item cv-education-item">
+            <h3>${esc(title)}</h3>
+            ${meta ? `<p class="cv-meta">${meta}</p>` : ""}
           </article>
-        `).join("")}
-      </section>
-    ` : ""}
+        `;
+      }).join("")}
+    </section>
+  `;
+}
 
-    <!-- ================= REFERENCES ================= -->
-    ${showReferencesSection ? `
-      <section class="cv-block cv-section">
-        <h2>References</h2>
+function renderReferencesSection(references = [], referencesOnRequest = false) {
+  const items = Array.isArray(references)
+    ? references.filter(item => item && (item.name || item.role || item.phone))
+    : [];
 
-        ${
-          hasReferences
-            ? cv.references.map(ref => {
-                const role =
-                  ref.role ||
-                  ref.position ||
-                  ref.title ||
-                  ref.relationship ||
-                  "";
+  if (!items.length && !referencesOnRequest) {
+    return "";
+  }
 
-                console.log("🔹 Reference:", {
-                  name: ref.name,
-                  role,
-                  phone: ref.phone
-                });
+  return `
+    <section class="cv-block cv-section">
+      <h2>References</h2>
+      ${referencesOnRequest ? `
+        <p class="cv-empty">References available on request</p>
+      ` : items.map(item => {
+        const meta = joinMeta([item.role, item.phone]);
 
-                return `
-                  <article class="cv-item cv-reference">
-                    <strong>${esc(ref.name)}</strong>
-                    ${role ? `<div class="cv-meta">${esc(role)}</div>` : ""}
-                    ${ref.phone ? `<div>${esc(ref.phone)}</div>` : ""}
-                  </article>
-                `;
-              }).join("")
-            : `<p class="cv-empty">Available on request</p>`
-        }
+        return `
+          <article class="cv-item cv-reference">
+            <h3>${esc(item.name || "Reference")}</h3>
+            ${meta ? `<p class="cv-meta">${meta}</p>` : ""}
+          </article>
+        `;
+      }).join("")}
+    </section>
+  `;
+}
 
-      </section>
-    ` : ""}
+module.exports = function renderCvHTML(cv) {
+  const template = sanitiseTemplate(cv.template);
+  const color = sanitiseColor(cv.color);
 
+  return `
+<div class="cv-preview ${template} color-${color}">
+  <aside class="cv-sidebar">
+    ${renderPhoto(cv.photo)}
+    ${renderContactSection(cv)}
+    ${renderSkillsSection(cv.skills)}
+  </aside>
+
+  <section class="cv-main">
+    <header class="cv-header">
+      <h1>${esc(cv.name || "")}</h1>
+      ${cv.title ? `<p class="cv-title">${esc(cv.title)}</p>` : ""}
+    </header>
+
+    ${renderSummarySection(cv.summary)}
+    ${renderExperienceSection(cv.experience)}
+    ${renderEducationSection(cv.education)}
+    ${renderReferencesSection(cv.references, cv.referencesOnRequest === true)}
   </section>
 </div>
 `;

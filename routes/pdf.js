@@ -17,19 +17,29 @@ const renderCvHTML = require("../utils/renderTemplate");
 let cvCss = "";
 let coverCss = "";
 
+function readCssFile(...candidates) {
+  for (const candidate of candidates) {
+    try {
+      return fs.readFileSync(candidate, "utf8");
+    } catch {}
+  }
+
+  return "";
+}
+
 try {
-  cvCss = fs.readFileSync(
-    path.join(__dirname, "../assets/css/cv.css"),
-    "utf8"
+  cvCss = readCssFile(
+    path.join(__dirname, "../public/css/cv.css"),
+    path.join(__dirname, "../assets/css/cv.css")
   );
 } catch {
   console.warn("CV CSS not found");
 }
 
 try {
-  coverCss = fs.readFileSync(
-    path.join(__dirname, "../assets/css/cover-letter.css"),
-    "utf8"
+  coverCss = readCssFile(
+    path.join(__dirname, "../public/css/cover-letter.css"),
+    path.join(__dirname, "../assets/css/cover-letter.css")
   );
 } catch {
   console.warn("Cover letter CSS not found");

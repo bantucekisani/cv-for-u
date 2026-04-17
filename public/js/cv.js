@@ -487,9 +487,28 @@ if (editingId) {
 const coverModal = document.getElementById("coverLetterModal");
 const coverOpenBtn = document.getElementById("coverLetterBtn");
 const coverCloseBtn = document.getElementById("coverCloseBtn");
+const aiModal = document.getElementById("aiModal");
 const jobMatchModal = document.getElementById("jobMatchModal");
 const jobMatchOpenBtn = document.getElementById("jobMatchBtn");
 const jobMatchCloseBtn = document.getElementById("jobMatchCloseBtn");
+
+function openModal(modal) {
+  if (!modal) {
+    return;
+  }
+
+  modal.style.display = "flex";
+  modal.scrollTop = 0;
+  modal.querySelector(".ai-modal")?.scrollTo({ top: 0, behavior: "auto" });
+}
+
+function closeModal(modal) {
+  if (!modal) {
+    return;
+  }
+
+  modal.style.display = "none";
+}
 
 function openJobMatchModal() {
   const locationInput = $("jobFinderLocation");
@@ -500,15 +519,15 @@ function openJobMatchModal() {
 
   renderJobMatchResult((currentCv.jobSearches || [])[0] || null);
   renderJobMatchHistory(currentCv.jobSearches || []);
-  jobMatchModal.style.display = "flex";
+  openModal(jobMatchModal);
 }
 
 coverOpenBtn?.addEventListener("click", () => {
-  coverModal.style.display = "flex";
+  openModal(coverModal);
 });
 
 coverCloseBtn?.addEventListener("click", () => {
-  coverModal.style.display = "none";
+  closeModal(coverModal);
 });
 
 jobMatchOpenBtn?.addEventListener("click", () => {
@@ -516,7 +535,25 @@ jobMatchOpenBtn?.addEventListener("click", () => {
 });
 
 jobMatchCloseBtn?.addEventListener("click", () => {
-  jobMatchModal.style.display = "none";
+  closeModal(jobMatchModal);
+});
+
+[aiModal, coverModal, jobMatchModal].forEach(modal => {
+  modal?.addEventListener("click", event => {
+    if (event.target === modal) {
+      closeModal(modal);
+    }
+  });
+});
+
+document.addEventListener("keydown", event => {
+  if (event.key !== "Escape") {
+    return;
+  }
+
+  closeModal(aiModal);
+  closeModal(coverModal);
+  closeModal(jobMatchModal);
 });
 
 if (!editingId && pendingOpenJobMatch) {
@@ -682,11 +719,11 @@ if (!editingId) {
 
 
   $("fullAiCvBtn")?.addEventListener("click", () => {
-  $("aiModal").style.display = "flex";
+  openModal(aiModal);
 });
 
 $("aiCloseBtn")?.addEventListener("click", () => {
-  $("aiModal").style.display = "none";
+  closeModal(aiModal);
 });
  
 
@@ -1134,7 +1171,7 @@ $("aiFullGenerateBtn")?.addEventListener("click", async () => {
     }
 
     loadAI(res.cv);
-    $("aiModal").style.display = "none";
+    closeModal(aiModal);
   } catch (err) {
     setStatus("AI error", "#dc2626");
     alert("Full AI failed");

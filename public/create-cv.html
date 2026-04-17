@@ -32,7 +32,9 @@
       background: rgba(0,0,0,0.6);
       display: none;
       justify-content: center;
-      align-items: center;
+      align-items: flex-start;
+      padding: 20px 14px;
+      overflow-y: auto;
       z-index: 999;
     }
     .ai-modal {
@@ -41,6 +43,31 @@
       max-width: 500px;
       padding: 20px;
       border-radius: 12px;
+      max-height: calc(100vh - 40px);
+      overflow-y: auto;
+      margin: auto;
+      box-shadow: 0 20px 45px rgba(15, 23, 42, 0.24);
+      position: relative;
+      scrollbar-gutter: stable;
+    }
+    .ai-close {
+      position: sticky;
+      top: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      margin-left: auto;
+      margin-bottom: 8px;
+      border-radius: 999px;
+      background: #fff;
+      color: #111827;
+      font-size: 28px;
+      line-height: 1;
+      cursor: pointer;
+      z-index: 2;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.14);
     }
     .ai-modal input,
     .ai-modal select,
@@ -197,6 +224,16 @@
     .inline-check input {
       width: auto;
       margin: 0;
+    }
+    @media (max-width: 640px) {
+      .ai-modal-bg {
+        padding: 12px;
+      }
+      .ai-modal {
+        width: 100%;
+        max-height: calc(100vh - 24px);
+        padding: 16px;
+      }
     }
   </style>
 </head>

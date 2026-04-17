@@ -213,6 +213,10 @@ document.addEventListener("DOMContentLoaded", () => {
           identifier
         });
 
+        if (debugBox && data.resetUrl) {
+          debugBox.innerHTML = `<a href="${data.resetUrl}">Open reset link</a>`;
+        }
+
         if (!res.ok || !data.success) {
           setMessage(messageBox, data.message || "Could not send reset link");
           return;
@@ -220,13 +224,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
         setMessage(
           messageBox,
-          data.message || "If an account exists, a reset link has been sent.",
+          data.message || "If an account exists, a reset link has been sent. Check your inbox and spam folder.",
           "success"
         );
-
-        if (debugBox && data.resetUrl) {
-          debugBox.innerHTML = `<a href="${data.resetUrl}">Open reset link</a>`;
-        }
       } catch (err) {
         console.error("FORGOT PASSWORD ERROR:", err);
         setMessage(messageBox, "Server error. Try again.");

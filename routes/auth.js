@@ -98,6 +98,12 @@ function parseBooleanEnv(value, defaultValue = false) {
   );
 }
 
+function clearPasswordResetState(user) {
+  user.passwordResetTokenHash = null;
+  user.passwordResetExpiresAt = null;
+  return user.save();
+}
+
 function buildPasswordResetEmailText(user, resetUrl) {
   return [
     `Hello ${user.fullName || "there"},`,
@@ -146,15 +152,20 @@ function buildPasswordResetEmailHtml(user, resetUrl) {
 }
 
 function getSmtpConfig() {
-  const host = String(process.env.EMAIL_HOST || "").trim();
-  const portValue = String(process.env.EMAIL_PORT || "").trim();
   const user = String(process.env.EMAIL_USER || "").trim();
+  const host = String(
+    process.env.EMAIL_HOST ||
+    (/@gmail\.com$/i.test(user) ? "smtp.gmail.com" : "")
+  ).trim();
+  const portValue = String(process.env.EMAIL_PORT || "").trim();
   const pass = String(process.env.EMAIL_PASS || "").trim();
   const from = String(
-    process.env.EMAIL_FROM || process.env.RESEND_FROM || ""
+    process.env.EMAIL_FROM || process.env.RESEND_FROM || user || ""
   ).trim();
   const replyTo = String(process.env.EMAIL_REPLY_TO || "").trim();
-  const port = Number.parseInt(portValue, 10);
+  const secure = parseBooleanEnv(process.env.EMAIL_SECURE, portValue === "465");
+  const defaultPort = host ? (secure ? 465 : 587) : 0;
+  const port = Number.parseInt(portValue || String(defaultPort), 10);
 
   if (!host || !user || !pass || !from || Number.isNaN(port)) {
     return null;
@@ -167,7 +178,27 @@ function getSmtpConfig() {
     pass,
     from,
     replyTo,
-    secure: parseBooleanEnv(process.env.EMAIL_SECURE, port === 465)
+    secure
+  };
+}
+
+function getPasswordResetEmailDiagnostics() {
+  const smtpConfig = getSmtpConfig();
+  const resendApiKey = String(process.env.RESEND_API_KEY || "").trim();
+  const resendFrom = String(
+    process.env.EMAIL_FROM || process.env.RESEND_FROM || ""
+  ).trim();
+
+  return {
+    smtpConfigured: Boolean(smtpConfig),
+    resendConfigured: Boolean(resendApiKey && resendFrom),
+    hasEmailHost: Boolean(String(process.env.EMAIL_HOST || "").trim()),
+    hasEmailPort: Boolean(String(process.env.EMAIL_PORT || "").trim()),
+    hasEmailUser: Boolean(String(process.env.EMAIL_USER || "").trim()),
+    hasEmailPass: Boolean(String(process.env.EMAIL_PASS || "").trim()),
+    hasEmailFrom: Boolean(String(process.env.EMAIL_FROM || "").trim()),
+    hasResendApiKey: Boolean(resendApiKey),
+    hasResendFrom: Boolean(String(process.env.RESEND_FROM || "").trim())
   };
 }
 
@@ -483,6 +514,15 @@ router.post("/forgot-password", async (req, res) => {
       });
     }
 
+    const emailDiagnostics = getPasswordResetEmailDiagnostics();
+    if (!emailDiagnostics.smtpConfigured && !emailDiagnostics.resendConfigured) {
+      console.error("PASSWORD RESET EMAIL NOT CONFIGURED:", emailDiagnostics);
+      return res.status(503).json({
+        success: false,
+        message: "Password reset email is not configured right now. Please contact support."
+      });
+    }
+
     const user = await findUserByIdentifier(identifier);
 
     const response = {
@@ -511,11 +551,22 @@ router.post("/forgot-password", async (req, res) => {
       );
     }
 
-    if (!delivered && (
-      process.env.NODE_ENV !== "production" ||
-      process.env.EXPOSE_PASSWORD_RESET_LINKS === "true"
-    )) {
-      response.resetUrl = resetUrl;
+    if (!delivered) {
+      await clearPasswordResetState(user);
+
+      const failureResponse = {
+        success: false,
+        message: "We could not send the reset email right now. Please try again later."
+      };
+
+      if (
+        process.env.NODE_ENV !== "production" ||
+        process.env.EXPOSE_PASSWORD_RESET_LINKS === "true"
+      ) {
+        failureResponse.resetUrl = resetUrl;
+      }
+
+      return res.status(503).json(failureResponse);
     }
 
     res.json(response);

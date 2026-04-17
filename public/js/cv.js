@@ -1293,7 +1293,60 @@ $("suggestSkillsBtn")?.addEventListener("click", async () => {
       (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
   }
 
-  function openDirectDownload(url) {
+  function openPendingDownloadWindow(message = "Preparing your PDF...") {
+    try {
+      const popup = window.open("", "_blank");
+
+      if (!popup) {
+        return null;
+      }
+
+      popup.document.write(`
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Preparing PDF</title>
+          <style>
+            body {
+              margin: 0;
+              min-height: 100vh;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              padding: 24px;
+              font-family: Arial, sans-serif;
+              background: #f8fbff;
+              color: #144f9b;
+              text-align: center;
+            }
+          </style>
+        </head>
+        <body>${escapeHtml(message)}</body>
+        </html>
+      `);
+      popup.document.close();
+      return popup;
+    } catch {
+      return null;
+    }
+  }
+
+  function closePendingDownloadWindow(popup) {
+    try {
+      if (popup && !popup.closed) {
+        popup.close();
+      }
+    } catch {}
+  }
+
+  function openDirectDownload(url, popup = null) {
+    if (popup && !popup.closed) {
+      popup.location.replace(url);
+      return true;
+    }
+
     const link = document.createElement("a");
     link.href = url;
     link.target = "_blank";
@@ -1301,6 +1354,7 @@ $("suggestSkillsBtn")?.addEventListener("click", async () => {
     document.body.appendChild(link);
     link.click();
     link.remove();
+    return true;
   }
 
   async function saveCoverLetterDraft(coverLetterText = $("coverOutput")?.value || "") {
@@ -1339,12 +1393,18 @@ $("suggestSkillsBtn")?.addEventListener("click", async () => {
       currentCvDownloadBtn.replaceWith(freshCvDownloadBtn);
 
       freshCvDownloadBtn.addEventListener("click", async () => {
+        const iosDownloadWindow = isIOSDevice()
+          ? openPendingDownloadWindow("Preparing your CV PDF...")
+          : null;
+
         if (!currentCv._id) {
+          closePendingDownloadWindow(iosDownloadWindow);
           alert("Please save your CV first");
           return;
         }
 
         if (Number(currentCv.downloadsRemaining || 0) <= 0) {
+          closePendingDownloadWindow(iosDownloadWindow);
           window.location.href = `pay.html?type=cv&cv=${currentCv._id}`;
           return;
         }
@@ -1352,6 +1412,7 @@ $("suggestSkillsBtn")?.addEventListener("click", async () => {
         const saved = await saveCV({ silent: true });
 
         if (!saved) {
+          closePendingDownloadWindow(iosDownloadWindow);
           alert("Save failed. Please try again.");
           return;
         }
@@ -1359,10 +1420,19 @@ $("suggestSkillsBtn")?.addEventListener("click", async () => {
         disableBtn("downloadPdfBtn", "Processing...");
 
         const directUrl =
-          `${window.API_BASE}/api/pdf/cv/${currentCv._id}?token=${encodeURIComponent(token)}`;
+          `${window.API_BASE}/api/pdf/cv/${currentCv._id}?token=${encodeURIComponent(token)}&inline=1`;
 
         if (isIOSDevice()) {
-          openDirectDownload(directUrl);
+          openDirectDownload(directUrl, iosDownloadWindow);
+          decrementRemainingCount("downloadsRemaining");
+          updateDownloadCounter();
+          updateDownloadButton();
+          setStatus("PDF opened in a new tab. On iPhone, use Share to save it.", "#16a34a");
+          setTimeout(() => {
+            if (currentCv._id) {
+              loadCV(currentCv._id);
+            }
+          }, 1500);
           enableBtn("downloadPdfBtn", "Download CV (PDF)");
           return;
         }
@@ -1376,23 +1446,27 @@ $("suggestSkillsBtn")?.addEventListener("click", async () => {
             }
           });
         } catch (err) {
+          closePendingDownloadWindow(iosDownloadWindow);
           alert("Network error. Please try again.");
           enableBtn("downloadPdfBtn", "Download CV (PDF)");
           return;
         }
 
         if (res.status === 402) {
+          closePendingDownloadWindow(iosDownloadWindow);
           enableBtn("downloadPdfBtn", "Pay to download CV");
           window.location.href = `pay.html?type=cv&cv=${currentCv._id}`;
           return;
         }
 
         if (res.status === 401 || res.status === 403) {
+          closePendingDownloadWindow(iosDownloadWindow);
           logout();
           return;
         }
 
         if (!res.ok) {
+          closePendingDownloadWindow(iosDownloadWindow);
           const err = await res.text();
           console.error("PDF ERROR:", err);
           enableBtn("downloadPdfBtn", "Download CV (PDF)");
@@ -1430,7 +1504,12 @@ $("suggestSkillsBtn")?.addEventListener("click", async () => {
       currentCoverDownloadBtn.replaceWith(freshCoverDownloadBtn);
 
       freshCoverDownloadBtn.addEventListener("click", async () => {
+        const iosDownloadWindow = isIOSDevice()
+          ? openPendingDownloadWindow("Preparing your cover letter PDF...")
+          : null;
+
         if (!currentCv._id) {
+          closePendingDownloadWindow(iosDownloadWindow);
           alert("Please save your CV first");
           return;
         }
@@ -1440,11 +1519,13 @@ $("suggestSkillsBtn")?.addEventListener("click", async () => {
           String(currentCv.coverLetter || "").trim();
 
         if (!coverText) {
+          closePendingDownloadWindow(iosDownloadWindow);
           alert("Generate your cover letter first");
           return;
         }
 
         if (Number(currentCv.coverLettersRemaining || 0) <= 0) {
+          closePendingDownloadWindow(iosDownloadWindow);
           window.location.href = `pay.html?type=cover-letter&cv=${currentCv._id}`;
           return;
         }
@@ -1452,6 +1533,7 @@ $("suggestSkillsBtn")?.addEventListener("click", async () => {
         try {
           await saveCoverLetterDraft(coverText);
         } catch (err) {
+          closePendingDownloadWindow(iosDownloadWindow);
           alert("Could not save your cover letter. Please try again.");
           return;
         }
@@ -1459,10 +1541,18 @@ $("suggestSkillsBtn")?.addEventListener("click", async () => {
         disableBtn("downloadCoverPdf", "Processing...");
 
         const directUrl =
-          `${window.API_BASE}/api/pdf/cover-letter/${currentCv._id}?token=${encodeURIComponent(token)}`;
+          `${window.API_BASE}/api/pdf/cover-letter/${currentCv._id}?token=${encodeURIComponent(token)}&inline=1`;
 
         if (isIOSDevice()) {
-          openDirectDownload(directUrl);
+          openDirectDownload(directUrl, iosDownloadWindow);
+          decrementRemainingCount("coverLettersRemaining");
+          updateCoverLetterCounter();
+          setStatus("PDF opened in a new tab. On iPhone, use Share to save it.", "#16a34a");
+          setTimeout(() => {
+            if (currentCv._id) {
+              loadCV(currentCv._id);
+            }
+          }, 1500);
           enableBtn("downloadCoverPdf", "Download Cover Letter");
           return;
         }
@@ -1476,23 +1566,27 @@ $("suggestSkillsBtn")?.addEventListener("click", async () => {
             }
           });
         } catch (err) {
+          closePendingDownloadWindow(iosDownloadWindow);
           alert("Network error. Please try again.");
           enableBtn("downloadCoverPdf", "Download Cover Letter");
           return;
         }
 
         if (res.status === 402) {
+          closePendingDownloadWindow(iosDownloadWindow);
           enableBtn("downloadCoverPdf", "Pay to download Cover Letter");
           window.location.href = `pay.html?type=cover-letter&cv=${currentCv._id}`;
           return;
         }
 
         if (res.status === 401 || res.status === 403) {
+          closePendingDownloadWindow(iosDownloadWindow);
           logout();
           return;
         }
 
         if (!res.ok) {
+          closePendingDownloadWindow(iosDownloadWindow);
           const err = await res.text();
           console.error("COVER PDF ERROR:", err);
           enableBtn("downloadCoverPdf", "Download Cover Letter");

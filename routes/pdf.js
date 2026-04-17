@@ -101,10 +101,16 @@ function pdfAuth(req, res, next) {
   return auth(req, res, next);
 }
 
-function setPdfHeaders(res, filename, pdf) {
+function wantsInlinePdf(req) {
+  return String(req.query.inline || "") === "1";
+}
+
+function setPdfHeaders(res, filename, pdf, { inline = false } = {}) {
+  const dispositionType = inline ? "inline" : "attachment";
+
   res.set({
     "Content-Type": "application/pdf",
-    "Content-Disposition": `attachment; filename="${filename}"`,
+    "Content-Disposition": `${dispositionType}; filename="${filename}"`,
     "Content-Length": String(pdf.length),
     "Cache-Control": "private, no-store, max-age=0",
     "X-Content-Type-Options": "nosniff"
@@ -138,7 +144,9 @@ async function sendCvPdf(req, res) {
       { $inc: { downloadsRemaining: -1 } }
     );
 
-    setPdfHeaders(res, "CV.pdf", pdf);
+    setPdfHeaders(res, "CV.pdf", pdf, {
+      inline: wantsInlinePdf(req)
+    });
     res.send(pdf);
   } catch (err) {
     console.error("CV PDF ERROR:", err);
@@ -181,7 +189,9 @@ async function sendCoverLetterPdf(req, res) {
       { $inc: { coverLettersRemaining: -1 } }
     );
 
-    setPdfHeaders(res, "Cover_Letter.pdf", pdf);
+    setPdfHeaders(res, "Cover_Letter.pdf", pdf, {
+      inline: wantsInlinePdf(req)
+    });
     res.send(pdf);
   } catch (err) {
     console.error("COVER LETTER PDF ERROR:", err);

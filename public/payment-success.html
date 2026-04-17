@@ -31,6 +31,43 @@
       }
       const token = storedUser?.token || localStorage.getItem("token") || "";
 
+      if (cvId) {
+        localStorage.setItem("forceReloadCv", cvId);
+      }
+
+      async function waitForCredits() {
+        if (!token) {
+          return;
+        }
+
+        const needsCoverCredit = type === "cover-letter";
+        const deadline = Date.now() + 20000;
+
+        while (Date.now() < deadline) {
+          try {
+            const res = await fetch(`/api/cv/${cvId}`, {
+              headers: {
+                Authorization: `Bearer ${token}`
+              }
+            });
+            const data = await res.json().catch(() => ({ success: false }));
+            const cv = data?.cv || null;
+
+            if (res.ok && data?.success && cv) {
+              const hasNeededCredits = needsCoverCredit
+                ? Number(cv.coverLettersRemaining || 0) > 0
+                : Number(cv.downloadsRemaining || 0) > 0;
+
+              if (hasNeededCredits) {
+                return;
+              }
+            }
+          } catch {}
+
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+      }
+
       if (type === "cover-letter" && token) {
         try {
           await fetch(`/api/payfast/confirm-cover/${cvId}`, {
@@ -42,6 +79,8 @@
           console.warn("Cover letter confirm failed, reload will retry.");
         }
       }
+
+      await waitForCredits();
 
       window.location.replace(`create-cv.html?id=${cvId}&v=20260410`);
     })();

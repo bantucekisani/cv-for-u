@@ -27,7 +27,8 @@ const editingId =
   null;
 console.log("🆔 editingId:", editingId);
 
-let currentCv = { _id: null, isPaid: false };
+let pendingOpenJobMatch = params.get("openJobMatch") === "1";
+let currentCv = { _id: null, isPaid: false, jobMatches: [] };
 
 
 
@@ -72,6 +73,173 @@ function clean(value) {
   return String(value || "")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function escapeHtml(value) {
+  return String(value || "").replace(/[&<>"']/g, char => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    "\"": "&quot;",
+    "'": "&#39;"
+  }[char]));
+}
+
+function getApiErrorMessage(error, fallback = "Something went wrong.") {
+  const raw = String(error?.message || "").trim();
+
+  if (!raw) {
+    return fallback;
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed.msg || parsed.message || fallback;
+  } catch {
+    return raw.length > 220 ? fallback : raw;
+  }
+}
+
+function setJobMatchMessage(message, type = "error") {
+  const element = $("jobMatchMessage");
+  if (!element) {
+    return;
+  }
+
+  element.textContent = message || "";
+  element.style.color = type === "success" ? "#166534" : "#b91c1c";
+}
+
+function renderJobMatchSection(title, items) {
+  if (!Array.isArray(items) || !items.length) {
+    return "";
+  }
+
+  return `
+    <div class="job-match-card">
+      <h4>${escapeHtml(title)}</h4>
+      <ul>${items.map(item => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
+    </div>
+  `;
+}
+
+function renderJobMatchResult(match = null, job = {}) {
+  const resultBox = $("jobMatchResult");
+  if (!resultBox) {
+    return;
+  }
+
+  if (!match) {
+    resultBox.innerHTML = "";
+    resultBox.style.display = "none";
+    return;
+  }
+
+  const score = Number(match.matchScore || 0);
+  let scoreColor = "#b91c1c";
+
+  if (score >= 80) {
+    scoreColor = "#166534";
+  } else if (score >= 60) {
+    scoreColor = "#b45309";
+  }
+
+  const safeJobUrl = /^https?:\/\//i.test(job.jobUrl || "")
+    ? escapeHtml(job.jobUrl)
+    : "";
+  const metaParts = [];
+
+  if (job.platform) {
+    metaParts.push(`Platform: ${escapeHtml(job.platform)}`);
+  }
+
+  if (job.jobTitle) {
+    metaParts.push(`Role: ${escapeHtml(job.jobTitle)}`);
+  }
+
+  if (safeJobUrl) {
+    metaParts.push(`<a href="${safeJobUrl}" target="_blank" rel="noopener">Open advert</a>`);
+  }
+
+  resultBox.innerHTML = `
+    <div class="job-match-score" style="background:${scoreColor};">${score}%</div>
+    <div class="job-match-meta">
+      <strong>${escapeHtml(match.verdict || "Job match")}</strong>
+      ${metaParts.length ? `<div>${metaParts.join(" | ")}</div>` : ""}
+    </div>
+    ${match.tailoredSummary ? `
+      <div class="job-match-card" style="margin-bottom:12px;">
+        <h4>Tailored Summary</h4>
+        <p>${escapeHtml(match.tailoredSummary)}</p>
+      </div>
+    ` : ""}
+    <div class="job-match-grid">
+      ${renderJobMatchSection("Strengths", match.strengths)}
+      ${renderJobMatchSection("Gaps", match.gaps)}
+      ${renderJobMatchSection("Missing Requirements", match.missingRequirements)}
+      ${renderJobMatchSection("Recommendations", match.recommendations)}
+      ${renderJobMatchSection("ATS Keywords", match.atsKeywords)}
+    </div>
+  `;
+  resultBox.style.display = "block";
+}
+
+function formatJobMatchDate(value) {
+  if (!value) {
+    return "";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return date.toLocaleString();
+}
+
+function renderJobMatchHistory(matches = []) {
+  const historyBox = $("jobMatchHistory");
+  if (!historyBox) {
+    return;
+  }
+
+  const items = Array.isArray(matches) ? matches : [];
+  if (!items.length) {
+    historyBox.innerHTML = `
+      <h3>Saved Matches</h3>
+      <div class="job-match-empty">No saved job matches yet. Run your first comparison to keep a history here.</div>
+    `;
+    return;
+  }
+
+  historyBox.innerHTML = `
+    <h3>Saved Matches</h3>
+    ${items.slice(0, 5).map(item => {
+      const jobTitle = escapeHtml(item.jobTitle || "Untitled role");
+      const platform = escapeHtml(item.platform || "Unknown platform");
+      const verdict = escapeHtml(item.verdict || "Job match");
+      const dateLabel = escapeHtml(formatJobMatchDate(item.createdAt));
+      const summary = escapeHtml(item.tailoredSummary || item.jobTextSnippet || "");
+      const safeUrl = /^https?:\/\//i.test(item.jobUrl || "")
+        ? escapeHtml(item.jobUrl)
+        : "";
+
+      return `
+        <div class="job-match-history-item">
+          <div class="job-match-history-header">
+            <div>
+              <strong>${jobTitle}</strong>
+              <div class="job-match-meta">${platform}${dateLabel ? ` | ${dateLabel}` : ""}</div>
+            </div>
+            <span class="job-match-score">${Number(item.matchScore || 0)}%</span>
+          </div>
+          <p class="job-match-summary-line">${verdict}</p>
+          ${summary ? `<p class="job-match-summary-line">${summary}</p>` : ""}
+          ${safeUrl ? `<a class="job-match-link" href="${safeUrl}" target="_blank" rel="noopener">Open advert</a>` : ""}
+        </div>
+      `;
+    }).join("")}
+  `;
 }
 
 function touchCv(delay = 800) {
@@ -295,6 +463,8 @@ if (editingId) {
   console.log("🆕 New CV mode — no ID provided");
   cvLoaded = true; // allow saving
   setStatus("New CV", "#2563eb");
+  renderJobMatchHistory([]);
+
 }
 
 
@@ -302,6 +472,21 @@ if (editingId) {
 const coverModal = document.getElementById("coverLetterModal");
 const coverOpenBtn = document.getElementById("coverLetterBtn");
 const coverCloseBtn = document.getElementById("coverCloseBtn");
+const jobMatchModal = document.getElementById("jobMatchModal");
+const jobMatchOpenBtn = document.getElementById("jobMatchBtn");
+const jobMatchCloseBtn = document.getElementById("jobMatchCloseBtn");
+
+function openJobMatchModal() {
+  const jobMatchText = $("jobMatchText");
+  const coverInput = $("coverInput");
+
+  if (jobMatchText && !jobMatchText.value.trim() && coverInput?.value.trim()) {
+    jobMatchText.value = coverInput.value.trim();
+  }
+
+  renderJobMatchHistory(currentCv.jobMatches || []);
+  jobMatchModal.style.display = "flex";
+}
 
 coverOpenBtn?.addEventListener("click", () => {
   coverModal.style.display = "flex";
@@ -310,6 +495,19 @@ coverOpenBtn?.addEventListener("click", () => {
 coverCloseBtn?.addEventListener("click", () => {
   coverModal.style.display = "none";
 });
+
+jobMatchOpenBtn?.addEventListener("click", () => {
+  openJobMatchModal();
+});
+
+jobMatchCloseBtn?.addEventListener("click", () => {
+  jobMatchModal.style.display = "none";
+});
+
+if (!editingId && pendingOpenJobMatch) {
+  openJobMatchModal();
+  pendingOpenJobMatch = false;
+}
 
 
 
@@ -688,6 +886,7 @@ console.log("MY-CVS STATUS:", res.status);
     isPaid: cv.isPaid === true
   };
 localStorage.removeItem("lastCvId");
+  renderJobMatchHistory(currentCv.jobMatches || []);
 
   updateDownloadCounter();
   updateDownloadButton();
@@ -745,6 +944,11 @@ if ($("coverOutput")) {
 
   cvLoaded = true;
   setStatus("CV loaded", "#16a34a");
+
+  if (pendingOpenJobMatch) {
+    openJobMatchModal();
+    pendingOpenJobMatch = false;
+  }
 }
 
 
@@ -840,6 +1044,7 @@ const timeout = setTimeout(() => controller.abort(), 20000);
 
     currentCv = data.cv;
     cvLoaded = true;
+    renderJobMatchHistory(currentCv.jobMatches || []);
 
     if (!silent) {
       setStatus("Saved", "#16a34a");
@@ -956,6 +1161,71 @@ $("suggestSkillsBtn")?.addEventListener("click", async () => {
     alert("Summary suggestion failed");
   }
 });
+
+ $("jobMatchGenerateBtn")?.addEventListener("click", async () => {
+  const btn = $("jobMatchGenerateBtn");
+  const platform = $("jobMatchPlatform")?.value || "other";
+  const jobTitle = $("jobMatchTitle")?.value.trim() || "";
+  const jobUrl = $("jobMatchUrl")?.value.trim() || "";
+  const jobText =
+    $("jobMatchText")?.value.trim() ||
+    $("coverInput")?.value.trim() ||
+    "";
+
+  setJobMatchMessage("");
+  renderJobMatchResult(null);
+
+  if (!jobText) {
+    setJobMatchMessage("Paste the job advert text to run a match.");
+    return;
+  }
+
+  const saved = await saveCV({ silent: true });
+  if (!saved || !currentCv._id) {
+    setJobMatchMessage("Please save your CV before running a job match.");
+    return;
+  }
+
+  if (currentCv.isPaid !== true) {
+    setJobMatchMessage("Job matching is available after this CV has been paid for.");
+    return;
+  }
+
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "Matching...";
+
+  try {
+    const res = await callAI(`${AI_API}/job-match`, {
+      cvId: currentCv._id,
+      platform,
+      jobTitle,
+      jobUrl,
+      jobText
+    });
+
+    if (!res?.success || !res.match) {
+      throw new Error("Job match failed");
+    }
+
+    renderJobMatchResult(res.match, res.job || {
+      platform,
+      jobTitle,
+      jobUrl
+    });
+    currentCv.jobMatches = Array.isArray(res.history) ? res.history : (currentCv.jobMatches || []);
+    renderJobMatchHistory(currentCv.jobMatches);
+    setJobMatchMessage("Job match ready.", "success");
+    setStatus("Job match ready", "#16a34a");
+  } catch (err) {
+    setJobMatchMessage(
+      getApiErrorMessage(err, "Job match failed. Please try again.")
+    );
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
+ });
 
 
   function loadAI(data) {

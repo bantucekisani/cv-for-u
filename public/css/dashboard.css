@@ -86,6 +86,35 @@
   font-size: 0.9rem;
 }
 
+.cv-job-match {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #f8fbff;
+  border: 1px solid #dbeafe;
+}
+
+.cv-job-match p {
+  margin: 0;
+  font-size: 0.82rem;
+}
+
+.cv-job-match p + p {
+  margin-top: 4px;
+}
+
+.cv-job-match-empty {
+  background: #f8fafc;
+  border-style: dashed;
+  border-color: #cbd5e1;
+}
+
+.cv-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 /* Buttons inside cards */
 .cv-card .small-btn {
   background: #2563eb;
@@ -95,7 +124,8 @@
   font-size: 0.84rem;
   border-radius: 8px;
   cursor: pointer;
-  margin-top: 8px;
+  margin-top: 0;
+  flex: 1 1 120px;
 }
 
 .cv-card .small-btn:hover {

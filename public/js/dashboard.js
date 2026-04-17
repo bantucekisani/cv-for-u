@@ -34,6 +34,41 @@ document.getElementById("logoutBtn")?.addEventListener("click", () => {
 
 const cvList = document.getElementById("cvList");
 
+function escapeHtml(value) {
+  return String(value || "").replace(/[&<>"']/g, char => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    "\"": "&quot;",
+    "'": "&#39;"
+  }[char]));
+}
+
+function buildJobMatchSummary(cv) {
+  const matches = Array.isArray(cv.jobMatches) ? cv.jobMatches : [];
+  const latest = matches[0] || null;
+
+  if (!latest) {
+    return `
+      <p class="cv-job-match cv-job-match-empty">No saved job matches yet.</p>
+    `;
+  }
+
+  const safeTitle = escapeHtml(latest.jobTitle || "Latest role");
+  const safeVerdict = escapeHtml(latest.verdict || "Job match");
+  const safeDate = latest.createdAt
+    ? escapeHtml(new Date(latest.createdAt).toLocaleString())
+    : "";
+
+  return `
+    <div class="cv-job-match">
+      <p><strong>Latest job match:</strong> ${Number(latest.matchScore || 0)}% for ${safeTitle}</p>
+      <p>${safeVerdict}${safeDate ? ` | ${safeDate}` : ""}</p>
+      <p>Saved matches: ${matches.length}</p>
+    </div>
+  `;
+}
+
 /* ======================================
    LOAD USER CVs
 ====================================== */
@@ -65,14 +100,17 @@ async function loadCVs() {
       card.className = "cv-card";
 
       card.innerHTML = `
-        <h3>${cv.cvName || cv.name || "Untitled CV"}</h3>
+        <h3>${escapeHtml(cv.cvName || cv.name || "Untitled CV")}</h3>
 
         <p class="cv-date">
-          Updated: ${new Date(cv.updatedAt).toLocaleString()}
+          Updated: ${escapeHtml(new Date(cv.updatedAt).toLocaleString())}
         </p>
+
+        ${buildJobMatchSummary(cv)}
 
         <div class="cv-actions">
           <button class="small-btn edit-btn" data-id="${cv._id}">Edit</button>
+          <button class="small-btn match-btn" data-id="${cv._id}">${cv.isPaid === true ? "Job Match" : "Unlock Job Match"}</button>
           <button class="small-btn rename-btn" data-id="${cv._id}">Rename</button>
           <button class="small-btn duplicate-btn" data-id="${cv._id}">Duplicate</button>
           <button class="small-btn danger-small delete-btn" data-id="${cv._id}">Delete</button>
@@ -100,6 +138,13 @@ document.addEventListener("click", async (e) => {
   const editBtn = e.target.closest(".edit-btn");
   if (editBtn) {
     window.location.href = `create-cv.html?id=${editBtn.dataset.id}`;
+    return;
+  }
+
+  /* JOB MATCH */
+  const matchBtn = e.target.closest(".match-btn");
+  if (matchBtn) {
+    window.location.href = `create-cv.html?id=${matchBtn.dataset.id}&openJobMatch=1`;
     return;
   }
 

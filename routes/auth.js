@@ -3,12 +3,14 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const axios = require("axios");
+const nodemailer = require("nodemailer");
 
 const User = require("../models/User");
 const auth = require("../middleware/auth");
 
 const router = express.Router();
 const PASSWORD_RESET_TTL_MS = 1000 * 60 * 60;
+let smtpTransporter = null;
 
 function normalizeEmail(value) {
   return String(value || "").trim().toLowerCase();
@@ -76,12 +78,113 @@ function hashResetToken(token) {
     .digest("hex");
 }
 
+function escapeHtml(value) {
+  return String(value || "").replace(/[&<>"']/g, char => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    "\"": "&quot;",
+    "'": "&#39;"
+  }[char]));
+}
+
+function parseBooleanEnv(value, defaultValue = false) {
+  if (value === undefined || value === null || value === "") {
+    return defaultValue;
+  }
+
+  return ["1", "true", "yes", "on"].includes(
+    String(value).trim().toLowerCase()
+  );
+}
+
+function buildPasswordResetEmailText(user, resetUrl) {
+  return [
+    `Hello ${user.fullName || "there"},`,
+    "",
+    "We received a request to reset your CV for U password.",
+    "Use the button in the email or open this link:",
+    `Reset your password: ${resetUrl}`,
+    "",
+    "This link expires in 1 hour. If you did not request this, you can ignore this email."
+  ].join("\n");
+}
+
 function getAppUrl(req) {
   return (
+    process.env.FRONTEND_URL ||
+    process.env.WEB_URL ||
     process.env.APP_URL ||
     process.env.PUBLIC_URL ||
     `${req.protocol}://${req.get("host")}`
   ).replace(/\/+$/, "");
+}
+
+function buildPasswordResetEmailHtml(user, resetUrl) {
+  const name = escapeHtml(user.fullName || "there");
+  const safeUrl = escapeHtml(resetUrl);
+
+  return `
+    <div style="font-family:Arial,sans-serif;line-height:1.6;color:#111827;">
+      <p>Hello ${name},</p>
+      <p>We received a request to reset your CV for U password.</p>
+      <p>
+        <a
+          href="${safeUrl}"
+          style="display:inline-block;padding:12px 20px;border-radius:8px;background:#144f9b;color:#ffffff;text-decoration:none;font-weight:600;"
+        >
+          Reset your password
+        </a>
+      </p>
+      <p>If the button does not open, copy and paste this link into your browser:</p>
+      <p style="word-break:break-all;">
+        <a href="${safeUrl}" style="color:#144f9b;">${safeUrl}</a>
+      </p>
+      <p>This link expires in 1 hour. If you did not request this, you can ignore this email.</p>
+    </div>
+  `;
+}
+
+function getSmtpConfig() {
+  const host = String(process.env.EMAIL_HOST || "").trim();
+  const portValue = String(process.env.EMAIL_PORT || "").trim();
+  const user = String(process.env.EMAIL_USER || "").trim();
+  const pass = String(process.env.EMAIL_PASS || "").trim();
+  const from = String(
+    process.env.EMAIL_FROM || process.env.RESEND_FROM || ""
+  ).trim();
+  const replyTo = String(process.env.EMAIL_REPLY_TO || "").trim();
+  const port = Number.parseInt(portValue, 10);
+
+  if (!host || !user || !pass || !from || Number.isNaN(port)) {
+    return null;
+  }
+
+  return {
+    host,
+    port,
+    user,
+    pass,
+    from,
+    replyTo,
+    secure: parseBooleanEnv(process.env.EMAIL_SECURE, port === 465)
+  };
+}
+
+function getSmtpTransporter(config) {
+  if (!smtpTransporter) {
+    smtpTransporter = nodemailer.createTransport({
+      host: config.host,
+      port: config.port,
+      secure: config.secure,
+      auth: {
+        user: config.user,
+        pass: config.pass
+      }
+    });
+  }
+
+  return smtpTransporter;
 }
 
 async function findUserByIdentifier(identifier) {
@@ -138,12 +241,35 @@ async function ensureUsername(user, preferredValue = "") {
   return user.username;
 }
 
-async function sendPasswordResetEmail(user, resetUrl) {
+async function sendPasswordResetEmailViaSmtp(user, resetUrl) {
+  const smtpConfig = getSmtpConfig();
+  if (!smtpConfig) {
+    return false;
+  }
+
+  const transporter = getSmtpTransporter(smtpConfig);
+  await transporter.sendMail({
+    from: smtpConfig.from,
+    to: user.email,
+    replyTo: smtpConfig.replyTo || undefined,
+    subject: "Reset your CV for U password",
+    html: buildPasswordResetEmailHtml(user, resetUrl),
+    text: buildPasswordResetEmailText(user, resetUrl)
+  });
+
+  return true;
+}
+
+async function sendPasswordResetEmailViaResend(user, resetUrl) {
   const resendApiKey = process.env.RESEND_API_KEY;
-  const emailFrom = process.env.EMAIL_FROM;
+  const emailFrom = process.env.EMAIL_FROM || process.env.RESEND_FROM;
+  const replyTo = process.env.EMAIL_REPLY_TO;
 
   if (!resendApiKey || !emailFrom) {
-    console.warn("Password reset email not sent: RESEND_API_KEY or EMAIL_FROM missing");
+    console.warn("Password reset email not sent: missing email config", {
+      hasResendApiKey: Boolean(resendApiKey),
+      hasEmailFrom: Boolean(emailFrom)
+    });
     return false;
   }
 
@@ -153,20 +279,9 @@ async function sendPasswordResetEmail(user, resetUrl) {
       from: emailFrom,
       to: [user.email],
       subject: "Reset your CV for U password",
-      html: `
-        <p>Hello ${user.fullName || "there"},</p>
-        <p>We received a request to reset your CV for U password.</p>
-        <p><a href="${resetUrl}">Reset your password</a></p>
-        <p>This link expires in 1 hour. If you did not request this, you can ignore this email.</p>
-      `,
-      text: [
-        `Hello ${user.fullName || "there"},`,
-        "",
-        "We received a request to reset your CV for U password.",
-        `Reset your password: ${resetUrl}`,
-        "",
-        "This link expires in 1 hour. If you did not request this, you can ignore this email."
-      ].join("\n")
+      reply_to: replyTo || undefined,
+      html: buildPasswordResetEmailHtml(user, resetUrl),
+      text: buildPasswordResetEmailText(user, resetUrl)
     },
     {
       headers: {
@@ -177,6 +292,19 @@ async function sendPasswordResetEmail(user, resetUrl) {
   );
 
   return true;
+}
+
+async function sendPasswordResetEmail(user, resetUrl) {
+  try {
+    const sentViaSmtp = await sendPasswordResetEmailViaSmtp(user, resetUrl);
+    if (sentViaSmtp) {
+      return true;
+    }
+  } catch (err) {
+    console.error("PASSWORD RESET SMTP ERROR:", err.message);
+  }
+
+  return sendPasswordResetEmailViaResend(user, resetUrl);
 }
 
 /* ============================
@@ -377,7 +505,10 @@ router.post("/forgot-password", async (req, res) => {
     try {
       delivered = await sendPasswordResetEmail(user, resetUrl);
     } catch (err) {
-      console.error("PASSWORD RESET EMAIL ERROR:", err.message);
+      console.error(
+        "PASSWORD RESET EMAIL ERROR:",
+        err.response?.data || err.message
+      );
     }
 
     if (!delivered && (

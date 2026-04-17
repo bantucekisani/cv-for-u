@@ -2,6 +2,7 @@ const express = require("express");
 const OpenAI = require("openai");
 
 const auth = require("../middleware/auth");
+const CV = require("../models/Cv");
 
 const router = express.Router();
 const client = new OpenAI({
@@ -105,6 +106,99 @@ function normalizeCvPayload(cv = {}) {
     }),
     experience: normalizeExperience(cv.experience),
     education: normalizeEducation(cv.education)
+  };
+}
+
+function clampScore(value) {
+  const score = Number.parseInt(value, 10);
+
+  if (Number.isNaN(score)) {
+    return 0;
+  }
+
+  return Math.max(0, Math.min(100, score));
+}
+
+function normalizeJobMatchPayload(match = {}) {
+  return {
+    matchScore: clampScore(match.matchScore),
+    verdict: cleanText(match.verdict, 180),
+    strengths: normalizeStringArray(match.strengths, {
+      maxItems: 6,
+      maxLength: 140
+    }),
+    gaps: normalizeStringArray(match.gaps, {
+      maxItems: 6,
+      maxLength: 140
+    }),
+    missingRequirements: normalizeStringArray(match.missingRequirements, {
+      maxItems: 6,
+      maxLength: 140
+    }),
+    recommendations: normalizeStringArray(match.recommendations, {
+      maxItems: 6,
+      maxLength: 160
+    }),
+    atsKeywords: normalizeStringArray(match.atsKeywords, {
+      maxItems: 12,
+      maxLength: 60
+    }),
+    tailoredSummary: cleanText(match.tailoredSummary, 500)
+  };
+}
+
+function buildMatchVerdict(score) {
+  if (score >= 85) {
+    return "Strong match";
+  }
+
+  if (score >= 70) {
+    return "Good match";
+  }
+
+  if (score >= 50) {
+    return "Possible match with improvements";
+  }
+
+  return "Low match right now";
+}
+
+function buildJobMatchHistoryEntry({
+  platform,
+  jobTitle,
+  jobUrl,
+  jobText,
+  match
+}) {
+  return {
+    platform: cleanText(platform, 60),
+    jobTitle: cleanText(jobTitle, 160),
+    jobUrl: cleanText(jobUrl, 500),
+    jobTextSnippet: cleanText(jobText, 280),
+    matchScore: clampScore(match.matchScore),
+    verdict: cleanText(match.verdict, 180),
+    strengths: normalizeStringArray(match.strengths, {
+      maxItems: 6,
+      maxLength: 140
+    }),
+    gaps: normalizeStringArray(match.gaps, {
+      maxItems: 6,
+      maxLength: 140
+    }),
+    missingRequirements: normalizeStringArray(match.missingRequirements, {
+      maxItems: 6,
+      maxLength: 140
+    }),
+    recommendations: normalizeStringArray(match.recommendations, {
+      maxItems: 6,
+      maxLength: 160
+    }),
+    atsKeywords: normalizeStringArray(match.atsKeywords, {
+      maxItems: 12,
+      maxLength: 60
+    }),
+    tailoredSummary: cleanText(match.tailoredSummary, 500),
+    createdAt: new Date()
   };
 }
 
@@ -321,6 +415,120 @@ Requirements:
     res.json({ success: true, letter });
   } catch (err) {
     console.error("COVER LETTER ERROR:", err);
+    res.status(500).json({ success: false, msg: "AI error" });
+  }
+});
+
+/* =====================================================
+   AI - JOB MATCH
+===================================================== */
+router.post("/job-match", auth, async (req, res) => {
+  try {
+    const cvId = cleanText(req.body.cvId, 80);
+    const platform = cleanText(req.body.platform, 60);
+    const jobTitle = cleanText(req.body.jobTitle, 160);
+    const jobUrl = cleanText(req.body.jobUrl, 500);
+    const jobText = cleanText(req.body.jobText, 7000);
+
+    if (!cvId) {
+      return res.status(400).json({ success: false, msg: "CV ID is required" });
+    }
+
+    if (!jobText) {
+      return res.status(400).json({
+        success: false,
+        msg: "Paste the job advert text to run a match"
+      });
+    }
+
+    const cv = await CV.findOne({
+      _id: cvId,
+      userId: req.user.id
+    });
+
+    if (!cv) {
+      return res.status(404).json({ success: false, msg: "CV not found" });
+    }
+
+    if (cv.isPaid !== true) {
+      return res.status(402).json({
+        success: false,
+        msg: "Job matching is available after this CV has been paid for"
+      });
+    }
+
+    const normalizedCv = normalizeCvPayload(cv);
+    const data = await createJsonCompletion({
+      systemPrompt:
+        "You are CV for U's job matching assistant. Compare a candidate CV against a job advert honestly and helpfully. Use only the facts in the CV and the advert. Never invent experience, qualifications, software skills, or results. Return strict JSON only.",
+      userPrompt: `
+Compare this CV to the advertised role and estimate how well the candidate matches it.
+
+Candidate CV:
+${JSON.stringify(normalizedCv, null, 2)}
+
+Job advert metadata:
+${JSON.stringify({ platform, jobTitle, jobUrl }, null, 2)}
+
+Job advert text:
+"""
+${jobText}
+"""
+
+Instructions:
+- Score the fit from 0 to 100.
+- Keep the verdict short and clear.
+- List the candidate's strongest matches to the advert.
+- Identify real gaps or missing requirements.
+- Suggest practical next steps to improve the application.
+- Suggest ATS keywords from the advert worth emphasizing if the CV truly supports them.
+- Write a tailored summary the candidate can use to position themselves for this role without inventing facts.
+- Use plain professional language suitable for South African job seekers.
+
+Return JSON only:
+{
+  "matchScore": 0,
+  "verdict": "",
+  "strengths": [],
+  "gaps": [],
+  "missingRequirements": [],
+  "recommendations": [],
+  "atsKeywords": [],
+  "tailoredSummary": ""
+}
+`,
+      temperature: 0.3
+    });
+
+    const match = normalizeJobMatchPayload(data);
+    if (!match.verdict) {
+      match.verdict = buildMatchVerdict(match.matchScore);
+    }
+
+    const historyEntry = buildJobMatchHistoryEntry({
+      platform,
+      jobTitle,
+      jobUrl,
+      jobText,
+      match
+    });
+
+    cv.jobMatches = [historyEntry, ...(Array.isArray(cv.jobMatches) ? cv.jobMatches : [])]
+      .slice(0, 10);
+    await cv.save();
+
+    res.json({
+      success: true,
+      job: {
+        platform,
+        jobTitle,
+        jobUrl
+      },
+      match,
+      history: cv.jobMatches
+    });
+  } catch (err) {
+    console.error("AI JOB MATCH ERROR:", err);
     res.status(500).json({ success: false, msg: "AI error" });
   }
 });

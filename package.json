@@ -24,6 +24,7 @@
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^9.0.0",
+    "nodemailer": "^8.0.5",
     "openai": "^6.9.1",
     "puppeteer-core": "^24.37.1"
   }

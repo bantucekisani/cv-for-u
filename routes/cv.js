@@ -17,6 +17,7 @@ router.post("/save", auth, async (req, res) => {
     delete body.coverLettersRemaining;
     delete body.isPaid;
     delete body.lastPaymentId;
+    delete body.jobMatches;
 
     let cv;
 
@@ -100,6 +101,7 @@ router.post("/save", auth, async (req, res) => {
 router.get("/my-cvs", auth, async (req, res) => {
   try {
     const cvs = await CV.find({ userId: req.user.id })
+      .select("cvName name isPaid jobMatches updatedAt createdAt")
       .sort({ updatedAt: -1 });
 
     res.json({ success: true, cvs });
@@ -128,6 +130,7 @@ router.post("/duplicate/:id", auth, async (req, res) => {
     copy.userId = req.user.id;
     copy.cvName = `${cv.cvName || cv.name} (Copy)`;
     copy.updatedAt = new Date();
+    copy.jobMatches = [];
 
     const newCv = await CV.create(copy);
     res.json({ success: true, cv: newCv });

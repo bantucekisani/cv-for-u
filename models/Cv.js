@@ -25,6 +25,23 @@ const ReferenceSchema = new mongoose.Schema({
   phone: { type: String, default: "" }
 });
 
+/* ================= JOB MATCHES ================= */
+const JobMatchSchema = new mongoose.Schema({
+  platform: { type: String, default: "" },
+  jobTitle: { type: String, default: "" },
+  jobUrl: { type: String, default: "" },
+  jobTextSnippet: { type: String, default: "" },
+  matchScore: { type: Number, default: 0 },
+  verdict: { type: String, default: "" },
+  strengths: { type: [String], default: [] },
+  gaps: { type: [String], default: [] },
+  missingRequirements: { type: [String], default: [] },
+  recommendations: { type: [String], default: [] },
+  atsKeywords: { type: [String], default: [] },
+  tailoredSummary: { type: String, default: "" },
+  createdAt: { type: Date, default: Date.now }
+});
+
 /* ================= CV ================= */
 const CVSchema = new mongoose.Schema(
   {
@@ -76,7 +93,10 @@ downloadsRemaining: { type: Number, default: 0 },
 coverLettersRemaining: { type: Number, default: 0 },
 
 /* ===== PAYFAST SAFETY ===== */
-lastPaymentId: { type: String, default: null }
+lastPaymentId: { type: String, default: null },
+
+/* ===== JOB MATCH HISTORY ===== */
+jobMatches: { type: [JobMatchSchema], default: [] }
 
   },
   {

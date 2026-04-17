@@ -42,6 +42,8 @@
       padding: 20px;
       border-radius: 12px;
     }
+    .ai-modal input,
+    .ai-modal select,
     .ai-modal textarea {
       width: 100%;
       height: 150px;
@@ -51,9 +53,115 @@
       border-radius: 6px;
       margin-top: 10px;
     }
+    .ai-modal input,
+    .ai-modal select {
+      height: auto;
+      resize: none;
+    }
     .ai-modal button {
       width: 100%;
       margin-top: 10px;
+    }
+    .job-match-result {
+      display: none;
+      margin-top: 18px;
+      padding: 16px;
+      border: 1px solid #d7e3f4;
+      border-radius: 12px;
+      background: #f8fbff;
+    }
+    .job-match-result h3,
+    .job-match-result h4 {
+      margin: 0 0 8px;
+    }
+    .job-match-score {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 72px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: #144f9b;
+      color: #fff;
+      font-weight: 700;
+      font-size: 18px;
+    }
+    .job-match-meta {
+      margin: 8px 0 14px;
+      color: #6b7280;
+      font-size: 14px;
+    }
+    .job-match-grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    }
+    .job-match-card {
+      padding: 12px;
+      border-radius: 10px;
+      background: #fff;
+      border: 1px solid #e5e7eb;
+    }
+    .job-match-card ul {
+      margin: 8px 0 0;
+      padding-left: 18px;
+    }
+    .job-match-card li + li {
+      margin-top: 6px;
+    }
+    .job-match-message {
+      min-height: 20px;
+      margin-top: 10px;
+      font-size: 14px;
+      color: #b91c1c;
+    }
+    .job-match-note {
+      margin-top: 10px;
+      color: #6b7280;
+      font-size: 13px;
+    }
+    .job-match-history {
+      margin-top: 16px;
+    }
+    .job-match-history-item {
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid #e5e7eb;
+      background: #fff;
+    }
+    .job-match-history-item + .job-match-history-item {
+      margin-top: 10px;
+    }
+    .job-match-history-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 6px;
+    }
+    .job-match-history-header strong {
+      display: block;
+      color: #111827;
+    }
+    .job-match-summary-line {
+      margin: 4px 0 0;
+      color: #4b5563;
+      font-size: 14px;
+    }
+    .job-match-link {
+      color: #144f9b;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .job-match-empty {
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 10px;
+      background: #fff;
+      border: 1px dashed #cbd5e1;
+      color: #6b7280;
+      font-size: 14px;
     }
   </style>
 </head>
@@ -222,6 +330,10 @@
   📝 Generate Cover Letter with AI
 </button>
 
+<button type="button" class="primary-btn" id="jobMatchBtn">
+  Match Me to a Job Ad
+</button>
+
 </div>
 </section> <!-- END cv-form -->
 
@@ -343,6 +455,50 @@
 
     <button type="button" id="downloadCoverPdf">↓ Download Cover Letter (PDF)</button>
 
+
+  </div>
+</div>
+
+   
+
+<!-- JOB MATCH MODAL -->
+<div class="ai-modal-bg" id="jobMatchModal">
+  <div class="ai-modal">
+
+    <span id="jobMatchCloseBtn" class="ai-close">&times;</span>
+
+    <h2>AI Job Match Assistant</h2>
+    <p>Paste a job advert from Indeed, LinkedIn, Pnet, or any South African job site to compare it with this CV.</p>
+
+    <label for="jobMatchPlatform">Platform</label>
+    <select id="jobMatchPlatform">
+      <option value="indeed">Indeed</option>
+      <option value="linkedin">LinkedIn</option>
+      <option value="pnet">Pnet</option>
+      <option value="careers24">Careers24</option>
+      <option value="company-site">Company Site</option>
+      <option value="other">Other</option>
+    </select>
+
+    <label for="jobMatchTitle">Job title</label>
+    <input type="text" id="jobMatchTitle" placeholder="Example: Sales Administrator">
+
+    <label for="jobMatchUrl">Job advert URL</label>
+    <input type="url" id="jobMatchUrl" placeholder="https://...">
+
+    <label for="jobMatchText">Paste the full job advert</label>
+    <textarea
+      id="jobMatchText"
+      rows="8"
+      placeholder="Paste the job description, requirements, and responsibilities here..."
+    ></textarea>
+
+    <button type="button" class="primary-btn" id="jobMatchGenerateBtn">Run Job Match</button>
+    <p id="jobMatchMessage" class="job-match-message"></p>
+    <p class="job-match-note">This feature is available for paid CVs. URL import is not automatic yet, so paste the advert text for the best result.</p>
+
+    <div id="jobMatchResult" class="job-match-result"></div>
+    <div id="jobMatchHistory" class="job-match-history"></div>
 
   </div>
 </div>

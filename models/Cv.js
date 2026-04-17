@@ -42,6 +42,29 @@ const JobMatchSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
+/* ================= JOB SEARCHES ================= */
+const JobSearchTargetSchema = new mongoose.Schema({
+  roleTitle: { type: String, default: "" },
+  searchQuery: { type: String, default: "" },
+  location: { type: String, default: "" },
+  matchScore: { type: Number, default: 0 },
+  whyFit: { type: String, default: "" },
+  keywords: { type: [String], default: [] },
+  indeedUrl: { type: String, default: "" },
+  linkedinUrl: { type: String, default: "" },
+  pnetUrl: { type: String, default: "" },
+  careers24Url: { type: String, default: "" },
+  jobmailUrl: { type: String, default: "" }
+});
+
+const JobSearchSchema = new mongoose.Schema({
+  locationFocus: { type: String, default: "" },
+  profileSummary: { type: String, default: "" },
+  searchTips: { type: [String], default: [] },
+  targetRoles: { type: [JobSearchTargetSchema], default: [] },
+  createdAt: { type: Date, default: Date.now }
+});
+
 /* ================= CV ================= */
 const CVSchema = new mongoose.Schema(
   {
@@ -96,7 +119,10 @@ coverLettersRemaining: { type: Number, default: 0 },
 lastPaymentId: { type: String, default: null },
 
 /* ===== JOB MATCH HISTORY ===== */
-jobMatches: { type: [JobMatchSchema], default: [] }
+jobMatches: { type: [JobMatchSchema], default: [] },
+
+/* ===== JOB FINDER HISTORY ===== */
+jobSearches: { type: [JobSearchSchema], default: [] }
 
   },
   {

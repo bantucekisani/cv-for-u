@@ -27,8 +27,10 @@ const editingId =
   null;
 console.log("🆔 editingId:", editingId);
 
-let pendingOpenJobMatch = params.get("openJobMatch") === "1";
-let currentCv = { _id: null, isPaid: false, jobMatches: [] };
+let pendingOpenJobMatch =
+  params.get("openJobFinder") === "1" ||
+  params.get("openJobMatch") === "1";
+let currentCv = { _id: null, isPaid: false, jobMatches: [], jobSearches: [] };
 
 
 
@@ -110,75 +112,88 @@ function setJobMatchMessage(message, type = "error") {
   element.style.color = type === "success" ? "#166534" : "#b91c1c";
 }
 
-function renderJobMatchSection(title, items) {
-  if (!Array.isArray(items) || !items.length) {
+function renderJobBoardLinks(target = {}) {
+  const links = [
+    { label: "Indeed", url: target.indeedUrl },
+    { label: "LinkedIn", url: target.linkedinUrl },
+    { label: "Pnet", url: target.pnetUrl },
+    { label: "Careers24", url: target.careers24Url },
+    { label: "Job Mail", url: target.jobmailUrl }
+  ].filter(item => /^https?:\/\//i.test(item.url || ""));
+
+  if (!links.length) {
     return "";
   }
 
   return `
-    <div class="job-match-card">
-      <h4>${escapeHtml(title)}</h4>
-      <ul>${items.map(item => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
+    <div class="job-board-links">
+      ${links.map(link => `
+        <a class="job-board-link" href="${escapeHtml(link.url)}" target="_blank" rel="noopener">
+          ${escapeHtml(link.label)}
+        </a>
+      `).join("")}
     </div>
   `;
 }
 
-function renderJobMatchResult(match = null, job = {}) {
+function renderJobMatchResult(result = null) {
   const resultBox = $("jobMatchResult");
   if (!resultBox) {
     return;
   }
 
-  if (!match) {
+  if (!result) {
     resultBox.innerHTML = "";
     resultBox.style.display = "none";
     return;
   }
 
-  const score = Number(match.matchScore || 0);
-  let scoreColor = "#b91c1c";
-
-  if (score >= 80) {
-    scoreColor = "#166534";
-  } else if (score >= 60) {
-    scoreColor = "#b45309";
-  }
-
-  const safeJobUrl = /^https?:\/\//i.test(job.jobUrl || "")
-    ? escapeHtml(job.jobUrl)
-    : "";
-  const metaParts = [];
-
-  if (job.platform) {
-    metaParts.push(`Platform: ${escapeHtml(job.platform)}`);
-  }
-
-  if (job.jobTitle) {
-    metaParts.push(`Role: ${escapeHtml(job.jobTitle)}`);
-  }
-
-  if (safeJobUrl) {
-    metaParts.push(`<a href="${safeJobUrl}" target="_blank" rel="noopener">Open advert</a>`);
-  }
-
   resultBox.innerHTML = `
-    <div class="job-match-score" style="background:${scoreColor};">${score}%</div>
     <div class="job-match-meta">
-      <strong>${escapeHtml(match.verdict || "Job match")}</strong>
-      ${metaParts.length ? `<div>${metaParts.join(" | ")}</div>` : ""}
+      <strong>Job search plan ready</strong>
+      <div>${escapeHtml(result.locationFocus || "South Africa")}</div>
     </div>
-    ${match.tailoredSummary ? `
+    ${result.profileSummary ? `
       <div class="job-match-card" style="margin-bottom:12px;">
-        <h4>Tailored Summary</h4>
-        <p>${escapeHtml(match.tailoredSummary)}</p>
+        <h4>Search Summary</h4>
+        <p>${escapeHtml(result.profileSummary)}</p>
+      </div>
+    ` : ""}
+    ${Array.isArray(result.searchTips) && result.searchTips.length ? `
+      <div class="job-match-card" style="margin-bottom:12px;">
+        <h4>Search Tips</h4>
+        <ul>${result.searchTips.map(item => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
       </div>
     ` : ""}
     <div class="job-match-grid">
-      ${renderJobMatchSection("Strengths", match.strengths)}
-      ${renderJobMatchSection("Gaps", match.gaps)}
-      ${renderJobMatchSection("Missing Requirements", match.missingRequirements)}
-      ${renderJobMatchSection("Recommendations", match.recommendations)}
-      ${renderJobMatchSection("ATS Keywords", match.atsKeywords)}
+      ${(Array.isArray(result.targetRoles) ? result.targetRoles : []).map(target => {
+        const score = Number(target.matchScore || 0);
+        let scoreColor = "#b91c1c";
+
+        if (score >= 80) {
+          scoreColor = "#166534";
+        } else if (score >= 60) {
+          scoreColor = "#b45309";
+        }
+
+        return `
+          <div class="job-match-card">
+            <div class="job-match-history-header">
+              <div>
+                <strong>${escapeHtml(target.roleTitle || "Target role")}</strong>
+                <div class="job-match-meta">${escapeHtml(target.location || result.locationFocus || "South Africa")}</div>
+              </div>
+              <span class="job-match-score" style="background:${scoreColor};">${score}%</span>
+            </div>
+            <p class="job-match-summary-line"><strong>Search:</strong> ${escapeHtml(target.searchQuery || target.roleTitle || "")}</p>
+            ${target.whyFit ? `<p class="job-match-summary-line">${escapeHtml(target.whyFit)}</p>` : ""}
+            ${Array.isArray(target.keywords) && target.keywords.length ? `
+              <p class="job-match-summary-line"><strong>Keywords:</strong> ${target.keywords.map(item => escapeHtml(item)).join(", ")}</p>
+            ` : ""}
+            ${renderJobBoardLinks(target)}
+          </div>
+        `;
+      }).join("")}
     </div>
   `;
   resultBox.style.display = "block";
@@ -206,22 +221,22 @@ function renderJobMatchHistory(matches = []) {
   const items = Array.isArray(matches) ? matches : [];
   if (!items.length) {
     historyBox.innerHTML = `
-      <h3>Saved Matches</h3>
-      <div class="job-match-empty">No saved job matches yet. Run your first comparison to keep a history here.</div>
+      <h3>Saved Job Searches</h3>
+      <div class="job-match-empty">No saved job searches yet. Run the finder to keep a history here.</div>
     `;
     return;
   }
 
   historyBox.innerHTML = `
-    <h3>Saved Matches</h3>
+    <h3>Saved Job Searches</h3>
     ${items.slice(0, 5).map(item => {
-      const jobTitle = escapeHtml(item.jobTitle || "Untitled role");
-      const platform = escapeHtml(item.platform || "Unknown platform");
-      const verdict = escapeHtml(item.verdict || "Job match");
+      const topRole = item?.targetRoles?.[0] || {};
+      const jobTitle = escapeHtml(topRole.roleTitle || "Untitled role");
+      const locationFocus = escapeHtml(item.locationFocus || "South Africa");
       const dateLabel = escapeHtml(formatJobMatchDate(item.createdAt));
-      const summary = escapeHtml(item.tailoredSummary || item.jobTextSnippet || "");
-      const safeUrl = /^https?:\/\//i.test(item.jobUrl || "")
-        ? escapeHtml(item.jobUrl)
+      const summary = escapeHtml(item.profileSummary || topRole.whyFit || "");
+      const safeUrl = /^https?:\/\//i.test(topRole.indeedUrl || "")
+        ? escapeHtml(topRole.indeedUrl)
         : "";
 
       return `
@@ -229,13 +244,13 @@ function renderJobMatchHistory(matches = []) {
           <div class="job-match-history-header">
             <div>
               <strong>${jobTitle}</strong>
-              <div class="job-match-meta">${platform}${dateLabel ? ` | ${dateLabel}` : ""}</div>
+              <div class="job-match-meta">${locationFocus}${dateLabel ? ` | ${dateLabel}` : ""}</div>
             </div>
-            <span class="job-match-score">${Number(item.matchScore || 0)}%</span>
+            <span class="job-match-score">${Number(topRole.matchScore || 0)}%</span>
           </div>
-          <p class="job-match-summary-line">${verdict}</p>
+          <p class="job-match-summary-line">${Number(item.targetRoles?.length || 0)} search target(s)</p>
           ${summary ? `<p class="job-match-summary-line">${summary}</p>` : ""}
-          ${safeUrl ? `<a class="job-match-link" href="${safeUrl}" target="_blank" rel="noopener">Open advert</a>` : ""}
+          ${safeUrl ? `<a class="job-match-link" href="${safeUrl}" target="_blank" rel="noopener">Open top Indeed search</a>` : ""}
         </div>
       `;
     }).join("")}
@@ -477,14 +492,14 @@ const jobMatchOpenBtn = document.getElementById("jobMatchBtn");
 const jobMatchCloseBtn = document.getElementById("jobMatchCloseBtn");
 
 function openJobMatchModal() {
-  const jobMatchText = $("jobMatchText");
-  const coverInput = $("coverInput");
+  const locationInput = $("jobFinderLocation");
 
-  if (jobMatchText && !jobMatchText.value.trim() && coverInput?.value.trim()) {
-    jobMatchText.value = coverInput.value.trim();
+  if (locationInput && !locationInput.value.trim() && currentCv.location) {
+    locationInput.value = currentCv.location;
   }
 
-  renderJobMatchHistory(currentCv.jobMatches || []);
+  renderJobMatchResult((currentCv.jobSearches || [])[0] || null);
+  renderJobMatchHistory(currentCv.jobSearches || []);
   jobMatchModal.style.display = "flex";
 }
 
@@ -886,7 +901,7 @@ console.log("MY-CVS STATUS:", res.status);
     isPaid: cv.isPaid === true
   };
 localStorage.removeItem("lastCvId");
-  renderJobMatchHistory(currentCv.jobMatches || []);
+  renderJobMatchHistory(currentCv.jobSearches || []);
 
   updateDownloadCounter();
   updateDownloadButton();
@@ -1044,7 +1059,7 @@ const timeout = setTimeout(() => controller.abort(), 20000);
 
     currentCv = data.cv;
     cvLoaded = true;
-    renderJobMatchHistory(currentCv.jobMatches || []);
+    renderJobMatchHistory(currentCv.jobSearches || []);
 
     if (!silent) {
       setStatus("Saved", "#16a34a");
@@ -1164,62 +1179,46 @@ $("suggestSkillsBtn")?.addEventListener("click", async () => {
 
  $("jobMatchGenerateBtn")?.addEventListener("click", async () => {
   const btn = $("jobMatchGenerateBtn");
-  const platform = $("jobMatchPlatform")?.value || "other";
-  const jobTitle = $("jobMatchTitle")?.value.trim() || "";
-  const jobUrl = $("jobMatchUrl")?.value.trim() || "";
-  const jobText =
-    $("jobMatchText")?.value.trim() ||
-    $("coverInput")?.value.trim() ||
-    "";
+  const preferredLocation = $("jobFinderLocation")?.value.trim() || "";
+  const includeRemote = $("jobFinderRemote")?.checked === true;
 
   setJobMatchMessage("");
   renderJobMatchResult(null);
 
-  if (!jobText) {
-    setJobMatchMessage("Paste the job advert text to run a match.");
-    return;
-  }
-
   const saved = await saveCV({ silent: true });
   if (!saved || !currentCv._id) {
-    setJobMatchMessage("Please save your CV before running a job match.");
+    setJobMatchMessage("Please save your CV before running the job finder.");
     return;
   }
 
   if (currentCv.isPaid !== true) {
-    setJobMatchMessage("Job matching is available after this CV has been paid for.");
+    setJobMatchMessage("Job finder is available after this CV has been paid for.");
     return;
   }
 
   const originalText = btn.textContent;
   btn.disabled = true;
-  btn.textContent = "Matching...";
+  btn.textContent = "Finding jobs...";
 
   try {
-    const res = await callAI(`${AI_API}/job-match`, {
+    const res = await callAI(`${AI_API}/job-finder`, {
       cvId: currentCv._id,
-      platform,
-      jobTitle,
-      jobUrl,
-      jobText
+      preferredLocation,
+      includeRemote
     });
 
-    if (!res?.success || !res.match) {
-      throw new Error("Job match failed");
+    if (!res?.success || !res.finder) {
+      throw new Error("Job finder failed");
     }
 
-    renderJobMatchResult(res.match, res.job || {
-      platform,
-      jobTitle,
-      jobUrl
-    });
-    currentCv.jobMatches = Array.isArray(res.history) ? res.history : (currentCv.jobMatches || []);
-    renderJobMatchHistory(currentCv.jobMatches);
-    setJobMatchMessage("Job match ready.", "success");
-    setStatus("Job match ready", "#16a34a");
+    renderJobMatchResult(res.finder);
+    currentCv.jobSearches = Array.isArray(res.history) ? res.history : (currentCv.jobSearches || []);
+    renderJobMatchHistory(currentCv.jobSearches);
+    setJobMatchMessage("Job finder ready.", "success");
+    setStatus("Job finder ready", "#16a34a");
   } catch (err) {
     setJobMatchMessage(
-      getApiErrorMessage(err, "Job match failed. Please try again.")
+      getApiErrorMessage(err, "Job finder failed. Please try again.")
     );
   } finally {
     btn.disabled = false;

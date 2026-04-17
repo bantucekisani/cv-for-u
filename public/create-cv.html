@@ -163,6 +163,41 @@
       color: #6b7280;
       font-size: 14px;
     }
+    .job-board-links {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      margin-top: 10px;
+    }
+    .job-board-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 38px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid #bfdbfe;
+      background: #eff6ff;
+      color: #144f9b;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .job-board-link:hover {
+      background: #dbeafe;
+    }
+    .inline-check {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 14px;
+      color: #374151;
+      font-size: 14px;
+    }
+    .inline-check input {
+      width: auto;
+      margin: 0;
+    }
   </style>
 </head>
 
@@ -331,7 +366,7 @@
 </button>
 
 <button type="button" class="primary-btn" id="jobMatchBtn">
-  Match Me to a Job Ad
+  Find Jobs for Me
 </button>
 
 </div>
@@ -467,35 +502,20 @@
 
     <span id="jobMatchCloseBtn" class="ai-close">&times;</span>
 
-    <h2>AI Job Match Assistant</h2>
-    <p>Paste a job advert from Indeed, LinkedIn, Pnet, or any South African job site to compare it with this CV.</p>
+    <h2>AI Job Finder</h2>
+    <p>Use this saved CV to generate realistic job searches for Indeed, LinkedIn, Pnet, Careers24, and other South African job boards.</p>
 
-    <label for="jobMatchPlatform">Platform</label>
-    <select id="jobMatchPlatform">
-      <option value="indeed">Indeed</option>
-      <option value="linkedin">LinkedIn</option>
-      <option value="pnet">Pnet</option>
-      <option value="careers24">Careers24</option>
-      <option value="company-site">Company Site</option>
-      <option value="other">Other</option>
-    </select>
+    <label for="jobFinderLocation">Preferred location</label>
+    <input type="text" id="jobFinderLocation" placeholder="Leave blank to use the CV location">
 
-    <label for="jobMatchTitle">Job title</label>
-    <input type="text" id="jobMatchTitle" placeholder="Example: Sales Administrator">
+    <label class="inline-check" for="jobFinderRemote">
+      <input type="checkbox" id="jobFinderRemote">
+      Include remote-friendly searches
+    </label>
 
-    <label for="jobMatchUrl">Job advert URL</label>
-    <input type="url" id="jobMatchUrl" placeholder="https://...">
-
-    <label for="jobMatchText">Paste the full job advert</label>
-    <textarea
-      id="jobMatchText"
-      rows="8"
-      placeholder="Paste the job description, requirements, and responsibilities here..."
-    ></textarea>
-
-    <button type="button" class="primary-btn" id="jobMatchGenerateBtn">Run Job Match</button>
+    <button type="button" class="primary-btn" id="jobMatchGenerateBtn">Find Jobs for Me</button>
     <p id="jobMatchMessage" class="job-match-message"></p>
-    <p class="job-match-note">This feature is available for paid CVs. URL import is not automatic yet, so paste the advert text for the best result.</p>
+    <p class="job-match-note">This feature reads the saved CV, suggests the best-fit roles, and builds ready-to-open search links. Paid CVs only.</p>
 
     <div id="jobMatchResult" class="job-match-result"></div>
     <div id="jobMatchHistory" class="job-match-history"></div>

@@ -44,27 +44,28 @@ function escapeHtml(value) {
   }[char]));
 }
 
-function buildJobMatchSummary(cv) {
-  const matches = Array.isArray(cv.jobMatches) ? cv.jobMatches : [];
-  const latest = matches[0] || null;
+function buildJobFinderSummary(cv) {
+  const searches = Array.isArray(cv.jobSearches) ? cv.jobSearches : [];
+  const latest = searches[0] || null;
+  const topRole = latest?.targetRoles?.[0] || null;
 
-  if (!latest) {
+  if (!latest || !topRole) {
     return `
-      <p class="cv-job-match cv-job-match-empty">No saved job matches yet.</p>
+      <p class="cv-job-match cv-job-match-empty">No saved job searches yet.</p>
     `;
   }
 
-  const safeTitle = escapeHtml(latest.jobTitle || "Latest role");
-  const safeVerdict = escapeHtml(latest.verdict || "Job match");
+  const safeTitle = escapeHtml(topRole.roleTitle || "Latest role");
+  const safeVerdict = escapeHtml(topRole.whyFit || latest.profileSummary || "Job finder ready");
   const safeDate = latest.createdAt
     ? escapeHtml(new Date(latest.createdAt).toLocaleString())
     : "";
 
   return `
     <div class="cv-job-match">
-      <p><strong>Latest job match:</strong> ${Number(latest.matchScore || 0)}% for ${safeTitle}</p>
+      <p><strong>Latest job search:</strong> ${Number(topRole.matchScore || 0)}% fit for ${safeTitle}</p>
       <p>${safeVerdict}${safeDate ? ` | ${safeDate}` : ""}</p>
-      <p>Saved matches: ${matches.length}</p>
+      <p>Saved searches: ${searches.length}</p>
     </div>
   `;
 }
@@ -106,11 +107,11 @@ async function loadCVs() {
           Updated: ${escapeHtml(new Date(cv.updatedAt).toLocaleString())}
         </p>
 
-        ${buildJobMatchSummary(cv)}
+        ${buildJobFinderSummary(cv)}
 
         <div class="cv-actions">
           <button class="small-btn edit-btn" data-id="${cv._id}">Edit</button>
-          <button class="small-btn match-btn" data-id="${cv._id}">${cv.isPaid === true ? "Job Match" : "Unlock Job Match"}</button>
+          <button class="small-btn match-btn" data-id="${cv._id}">${cv.isPaid === true ? "Find Jobs" : "Unlock Job Finder"}</button>
           <button class="small-btn rename-btn" data-id="${cv._id}">Rename</button>
           <button class="small-btn duplicate-btn" data-id="${cv._id}">Duplicate</button>
           <button class="small-btn danger-small delete-btn" data-id="${cv._id}">Delete</button>
@@ -144,7 +145,7 @@ document.addEventListener("click", async (e) => {
   /* JOB MATCH */
   const matchBtn = e.target.closest(".match-btn");
   if (matchBtn) {
-    window.location.href = `create-cv.html?id=${matchBtn.dataset.id}&openJobMatch=1`;
+    window.location.href = `create-cv.html?id=${matchBtn.dataset.id}&openJobFinder=1`;
     return;
   }
 

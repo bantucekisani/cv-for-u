@@ -202,6 +202,101 @@ function buildJobMatchHistoryEntry({
   };
 }
 
+function buildIndeedSearchUrl(query, location) {
+  const url = new URL("https://za.indeed.com/jobs");
+  url.searchParams.set("q", cleanText(query, 160));
+
+  if (location) {
+    url.searchParams.set("l", cleanText(location, 120));
+  }
+
+  return url.toString();
+}
+
+function buildLinkedInSearchUrl(query, location) {
+  const url = new URL("https://www.linkedin.com/jobs/search/");
+  url.searchParams.set("keywords", cleanText(query, 160));
+  url.searchParams.set("location", cleanText(location || "South Africa", 120));
+  return url.toString();
+}
+
+function buildGoogleSiteJobUrl(domain, query, location) {
+  const searchTerms = [
+    `site:${domain}`,
+    cleanText(query, 160),
+    cleanText(location, 120),
+    "jobs",
+    "South Africa"
+  ].filter(Boolean).join(" ");
+
+  return `https://www.google.com/search?q=${encodeURIComponent(searchTerms)}`;
+}
+
+function normalizeJobFinderPayload(plan = {}) {
+  const targetRoles = Array.isArray(plan.targetRoles)
+    ? plan.targetRoles
+      .map(role => ({
+        roleTitle: cleanText(role?.roleTitle, 120),
+        searchQuery: cleanText(role?.searchQuery || role?.roleTitle, 160),
+        location: cleanText(role?.location, 120),
+        matchScore: clampScore(role?.matchScore),
+        whyFit: cleanText(role?.whyFit, 260),
+        keywords: normalizeStringArray(role?.keywords, {
+          maxItems: 8,
+          maxLength: 60
+        })
+      }))
+      .filter(role => role.roleTitle || role.searchQuery)
+      .slice(0, 5)
+    : [];
+
+  return {
+    locationFocus: cleanText(plan.locationFocus, 120) || "South Africa",
+    profileSummary: cleanText(plan.profileSummary, 400),
+    searchTips: normalizeStringArray(plan.searchTips, {
+      maxItems: 6,
+      maxLength: 140
+    }),
+    targetRoles
+  };
+}
+
+function attachJobBoardLinks(target = {}, { locationFocus = "", includeRemote = false } = {}) {
+  const baseQuery = cleanText(target.searchQuery || target.roleTitle, 160);
+  const searchQuery = includeRemote && !/\bremote\b/i.test(baseQuery)
+    ? `${baseQuery} remote`
+    : baseQuery;
+  const location = cleanText(target.location || locationFocus || "South Africa", 120);
+
+  return {
+    ...target,
+    searchQuery,
+    location,
+    indeedUrl: buildIndeedSearchUrl(searchQuery, location),
+    linkedinUrl: buildLinkedInSearchUrl(searchQuery, location),
+    pnetUrl: buildGoogleSiteJobUrl("pnet.co.za", searchQuery, location),
+    careers24Url: buildGoogleSiteJobUrl("careers24.com", searchQuery, location),
+    jobmailUrl: buildGoogleSiteJobUrl("jobmail.co.za", searchQuery, location)
+  };
+}
+
+function buildJobSearchHistoryEntry(plan = {}, { preferredLocation = "", includeRemote = false } = {}) {
+  const locationFocus = cleanText(preferredLocation || plan.locationFocus, 120) || "South Africa";
+
+  return {
+    locationFocus,
+    profileSummary: cleanText(plan.profileSummary, 400),
+    searchTips: normalizeStringArray(plan.searchTips, {
+      maxItems: 6,
+      maxLength: 140
+    }),
+    targetRoles: (Array.isArray(plan.targetRoles) ? plan.targetRoles : [])
+      .map(target => attachJobBoardLinks(target, { locationFocus, includeRemote }))
+      .slice(0, 5),
+    createdAt: new Date()
+  };
+}
+
 async function createJsonCompletion({
   systemPrompt,
   userPrompt,
@@ -529,6 +624,140 @@ Return JSON only:
     });
   } catch (err) {
     console.error("AI JOB MATCH ERROR:", err);
+    res.status(500).json({ success: false, msg: "AI error" });
+  }
+});
+
+/* =====================================================
+   AI - JOB FINDER
+===================================================== */
+router.post("/job-finder", auth, async (req, res) => {
+  try {
+    const cvId = cleanText(req.body.cvId, 80);
+    const preferredLocation = cleanText(req.body.preferredLocation, 120);
+    const includeRemote = req.body.includeRemote === true;
+
+    if (!cvId) {
+      return res.status(400).json({ success: false, msg: "CV ID is required" });
+    }
+
+    const cv = await CV.findOne({
+      _id: cvId,
+      userId: req.user.id
+    });
+
+    if (!cv) {
+      return res.status(404).json({ success: false, msg: "CV not found" });
+    }
+
+    if (cv.isPaid !== true) {
+      return res.status(402).json({
+        success: false,
+        msg: "Job finder is available after this CV has been paid for"
+      });
+    }
+
+    const normalizedCv = normalizeCvPayload(cv);
+    const data = await createJsonCompletion({
+      systemPrompt:
+        "You are CV for U's job finder assistant. Read a candidate CV and suggest realistic job searches that fit the candidate. Use only facts from the CV. Do not invent qualifications, years, certifications, industries, or tools. Focus on practical job searches suitable for South African job seekers. Return strict JSON only.",
+      userPrompt: `
+Build a job search plan from this CV.
+
+Candidate CV:
+${JSON.stringify(normalizedCv, null, 2)}
+
+Preferences:
+${JSON.stringify({
+  preferredLocation: preferredLocation || null,
+  includeRemote
+}, null, 2)}
+
+Instructions:
+- Suggest 3 to 5 realistic target roles based on the CV.
+- Keep search queries short and useful for job boards.
+- Use the preferred location when it is provided, otherwise infer the strongest location from the CV.
+- Estimate fit honestly from 0 to 100.
+- Explain briefly why each target role fits this CV.
+- Suggest practical search tips for this candidate.
+- Use plain professional language suitable for South African job seekers.
+
+Return JSON only:
+{
+  "locationFocus": "",
+  "profileSummary": "",
+  "searchTips": [],
+  "targetRoles": [
+    {
+      "roleTitle": "",
+      "searchQuery": "",
+      "location": "",
+      "matchScore": 0,
+      "whyFit": "",
+      "keywords": []
+    }
+  ]
+}
+`,
+      temperature: 0.3
+    });
+
+    const plan = normalizeJobFinderPayload(data);
+
+    if (!plan.targetRoles.length) {
+      const fallbackQuery = cleanText(
+        [
+          normalizedCv.title,
+          ...(Array.isArray(normalizedCv.skills)
+            ? normalizedCv.skills.slice(0, 3)
+            : [])
+        ].filter(Boolean).join(" "),
+        160
+      ) || "jobs";
+
+      plan.targetRoles = [
+        {
+          roleTitle: cleanText(normalizedCv.title, 120) || "General job search",
+          searchQuery: fallbackQuery,
+          location: preferredLocation || normalizedCv.location || "South Africa",
+          matchScore: 50,
+          whyFit: "Generated from the saved CV because no target roles were returned.",
+          keywords: normalizeStringArray(normalizedCv.skills, {
+            maxItems: 5,
+            maxLength: 60
+          })
+        }
+      ];
+    }
+
+    if (!plan.profileSummary) {
+      plan.profileSummary =
+        "Use this saved CV to start a focused job search on the recommended job boards.";
+    }
+
+    const historyEntry = buildJobSearchHistoryEntry(plan, {
+      preferredLocation,
+      includeRemote
+    });
+
+    if (!historyEntry.targetRoles.length) {
+      return res.status(500).json({
+        success: false,
+        msg: "Could not generate job finder results"
+      });
+    }
+
+    cv.jobSearches = [historyEntry, ...(Array.isArray(cv.jobSearches) ? cv.jobSearches : [])]
+      .slice(0, 10);
+    await cv.save();
+
+    res.json({
+      success: true,
+      finder: historyEntry,
+      history: cv.jobSearches
+    });
+  } catch (err) {
+    console.error("AI JOB FINDER ERROR:", err);
     res.status(500).json({ success: false, msg: "AI error" });
   }
 });

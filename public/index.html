@@ -2,13 +2,200 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title> – Online CV Maker</title>
+  <title>CV for U - Online CV Maker and Job Finder</title>
+  <meta
+    name="description"
+    content="Build a professional CV, get AI writing help, and find matching jobs from your saved CV with CV for U."
+  />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <!-- Main Styles -->
   <link rel="stylesheet" href="css/cv.css" />
 
   <style>
+    .hero-proof-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 18px 0 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .hero-proof-item {
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.82);
+      border: 1px solid #dbeafe;
+      color: #144f9b;
+      font-size: 14px;
+      font-weight: 600;
+      box-shadow: 0 10px 20px rgba(15, 23, 42, 0.05);
+    }
+
+    .features {
+      max-width: 1100px;
+      margin: 50px auto;
+      padding: 0 24px;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .feature {
+      padding: 22px 20px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid #dbeafe;
+      box-shadow: 0 16px 32px rgba(15, 23, 42, 0.06);
+    }
+
+    .feature h3 {
+      margin: 0 0 10px;
+      color: #0f172a;
+    }
+
+    .feature p {
+      margin: 0;
+      color: #64748b;
+      line-height: 1.6;
+    }
+
+    .job-discovery {
+      max-width: 1100px;
+      margin: 60px auto;
+      padding: 0 24px;
+    }
+
+    .job-discovery-shell {
+      display: grid;
+      grid-template-columns: 1.2fr 0.95fr;
+      gap: 26px;
+      padding: 28px;
+      border-radius: 24px;
+      background: linear-gradient(
+        135deg,
+        rgba(14, 165, 233, 0.12),
+        rgba(37, 99, 235, 0.08) 52%,
+        rgba(255, 255, 255, 0.92)
+      );
+      border: 1px solid #cfe6ff;
+      box-shadow: 0 24px 48px rgba(15, 23, 42, 0.08);
+    }
+
+    .job-discovery-copy h2 {
+      margin: 0 0 12px;
+      font-size: clamp(1.9rem, 2.4vw, 2.5rem);
+      line-height: 1.15;
+      color: #0f172a;
+    }
+
+    .job-discovery-copy p {
+      margin: 0;
+      max-width: 620px;
+      color: #475569;
+      line-height: 1.7;
+    }
+
+    .job-discovery-points {
+      margin: 18px 0 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 12px;
+    }
+
+    .job-discovery-points li {
+      position: relative;
+      padding-left: 18px;
+      color: #0f172a;
+      font-weight: 500;
+    }
+
+    .job-discovery-points li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 10px;
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: #2563eb;
+      box-shadow: 0 0 0 5px rgba(37, 99, 235, 0.12);
+    }
+
+    .job-discovery-panel {
+      padding: 20px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.96);
+      border: 1px solid #dbeafe;
+    }
+
+    .job-discovery-label {
+      margin: 0 0 14px;
+      color: #2563eb;
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .job-discovery-grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .job-discovery-card {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 14px;
+      align-items: start;
+      padding: 14px;
+      border-radius: 16px;
+      background: #f8fbff;
+      border: 1px solid #d8e8fb;
+    }
+
+    .job-discovery-card h3 {
+      margin: 0 0 4px;
+      font-size: 1rem;
+      color: #0f172a;
+    }
+
+    .job-discovery-card p {
+      margin: 0;
+      color: #64748b;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .job-discovery-score {
+      min-width: 62px;
+      padding: 10px 12px;
+      border-radius: 999px;
+      background: #166534;
+      color: #fff;
+      font-size: 0.95rem;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .job-discovery-links {
+      margin-top: 18px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .job-discovery-link {
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      color: #144f9b;
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+    }
+
     @media (max-width: 768px) {
       .hero {
         flex-direction: column;
@@ -25,237 +212,299 @@
         margin-top: 20px;
       }
 
-      /* GRIDS STACK */
       .cv-examples-grid,
       .testimonials-grid,
-      .hiw-steps {
+      .hiw-steps,
+      .features,
+      .job-discovery-shell {
         grid-template-columns: 1fr !important;
+      }
+
+      .job-discovery {
+        padding: 0 16px;
+      }
+
+      .job-discovery-shell {
+        padding: 22px 18px;
       }
     }
   </style>
 </head>
 
 <body class="landing-body">
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="brand">
+        <img src="images/logo.png" class="logo" alt="CV for U logo" />
+        <span class="app-name">CV for U</span>
+      </div>
 
-<!-- ================= TOP BAR ================= -->
-<header class="topbar">
-  <div class="topbar-left">
-    <div class="brand">
-      <img src="images/logo.png" class="logo" alt="CV for U logo" />
-      <span class="app-name">CV for U</span>
+      <button class="mobile-menu-btn" id="menuBtn" aria-label="Menu">
+        Menu
+      </button>
     </div>
 
-    <button class="mobile-menu-btn" id="menuBtn" aria-label="Menu">
-      ☰
-    </button>
-  </div>
+    <nav class="topbar-right" id="mobileMenu">
+      <a href="index.html" class="top-link">Home</a>
+      <a href="pricing.html" class="top-link">Pricing</a>
+      <a href="help.html" class="top-link">Help</a>
+      <a href="login.html" class="top-link">Login</a>
+      <a href="signup.html" class="primary-btn small">Sign Up</a>
+    </nav>
+  </header>
 
-  <nav class="topbar-right" id="mobileMenu">
-     <a href="index.html" class="top-link">Home</a>
-    <a href="pricing.html" class="top-link">Pricing</a>
-    <a href="help.html" class="top-link">Help</a>
-    <a href="login.html" class="top-link">Login</a>
-    <a href="signup.html" class="primary-btn small">Sign Up</a>
-  </nav>
-</header>
+  <section class="hero">
+    <div class="hero-text">
+      <p class="hero-kicker">Build. Match. Apply.</p>
 
+      <h1>Create a job-winning CV and find matching jobs faster.</h1>
 
+      <p class="hero-sub">
+        Build your professional CV with modern templates, AI-powered writing help,
+        live preview, and a built-in job finder that points you to matching roles.
+        No design skills needed.
+      </p>
 
-<!-- ================= HERO ================= -->
-<section class="hero">
-  <div class="hero-text">
-    <p class="hero-kicker">Fast. Easy. Effective.</p>
+      <div class="hero-actions">
+        <button class="primary-btn" id="createCvBtn">Create new CV</button>
+      </div>
 
-    <h1>Create a job-winning CV in minutes.</h1>
+      <div class="ai-badge">AI CV builder plus AI job finder included</div>
 
-    <p class="hero-sub">
-      Build your professional CV with modern templates, AI-powered writing help,
-      and live preview. No design skills needed.
-    </p>
+      <p class="hero-small">
+        Create your CV for free. Download when ready for only <strong>R40</strong>
+        with 4 CV downloads, 1 free AI cover letter, and job-finder access.
+      </p>
 
-    <div class="hero-actions">
-      <button class="primary-btn" id="createCvBtn">Create new CV</button>
-    </div>
+      <ul class="hero-proof-list">
+        <li class="hero-proof-item">Matches your CV to likely roles</li>
+        <li class="hero-proof-item">Builds ready-to-open job searches</li>
+        <li class="hero-proof-item">Works with Indeed, LinkedIn, Pnet and more</li>
+      </ul>
 
-    <div class="ai-badge">🤖 AI-assisted CV builder included</div>
-
-    <p class="hero-small">
-      Create your CV for free · Download when ready (only <strong>R40</strong>)
-      for 4 CV downloads & 1 free AI cover letter
-    </p>
-
-    <div class="trust-row">
-      <span class="trust-label">Perfect for:</span>
-      <span class="trust-pill">Students</span>
-      <span class="trust-pill">Job seekers</span>
-      <span class="trust-pill">Professionals</span>
-    </div>
-  </div>
-
-  <!-- ===== MINI PREVIEW ===== -->
-  <div class="hero-preview-card animate-preview">
-    <h3>Live preview</h3>
-
-    <div class="mini-cv">
-      <div class="mini-cv-sidebar"></div>
-      <div class="mini-cv-content">
-        <div class="mini-cv-header-line"></div>
-        <div class="mini-cv-line"></div>
-        <div class="mini-cv-line short"></div>
+      <div class="trust-row">
+        <span class="trust-label">Perfect for:</span>
+        <span class="trust-pill">Students</span>
+        <span class="trust-pill">Job seekers</span>
+        <span class="trust-pill">Professionals</span>
       </div>
     </div>
 
-    <p class="mini-caption">Your CV updates instantly as you type.</p>
-  </div>
-</section>
+    <div class="hero-preview-card animate-preview">
+      <h3>Live preview</h3>
 
-<!-- ================= CV EXAMPLES ================= -->
-<section class="cv-examples">
-  <h2 class="examples-title">Popular CV examples</h2>
-  <p class="examples-sub">See what your CV could look like</p>
+      <div class="mini-cv">
+        <div class="mini-cv-sidebar"></div>
+        <div class="mini-cv-content">
+          <div class="mini-cv-header-line"></div>
+          <div class="mini-cv-line"></div>
+          <div class="mini-cv-line short"></div>
+        </div>
+      </div>
 
-  <div class="cv-examples-grid">
-    <div class="cv-example-card">
-      <span class="cv-badge popular">⭐ Popular</span>
-      <div class="cv-paper">
-        <h3>Nomvula Dlamini</h3>
-        <p class="cv-role">Administrative Assistant</p>
-        <hr>
-        <p class="cv-text">Detail-oriented admin professional with 3+ years experience.</p>
-        <p class="cv-text small">Education · Experience · Skills</p>
+      <p class="mini-caption">Your CV updates instantly as you type.</p>
+    </div>
+  </section>
+
+  <section class="cv-examples">
+    <h2 class="examples-title">Popular CV examples</h2>
+    <p class="examples-sub">See what your CV could look like</p>
+
+    <div class="cv-examples-grid">
+      <div class="cv-example-card">
+        <span class="cv-badge popular">Popular</span>
+        <div class="cv-paper">
+          <h3>Nomvula Dlamini</h3>
+          <p class="cv-role">Administrative Assistant</p>
+          <hr />
+          <p class="cv-text">Detail-oriented admin professional with 3+ years experience.</p>
+          <p class="cv-text small">Education. Experience. Skills.</p>
+        </div>
+      </div>
+
+      <div class="cv-example-card">
+        <span class="cv-badge recommended">Recommended</span>
+        <div class="cv-paper">
+          <h3>Thabo Mokoena</h3>
+          <p class="cv-role">Retail Supervisor</p>
+          <hr />
+          <p class="cv-text">Customer-focused retail leader with strong team skills.</p>
+          <p class="cv-text small">Work history. Skills. References.</p>
+        </div>
+      </div>
+
+      <div class="cv-example-card">
+        <span class="cv-badge student">Student</span>
+        <div class="cv-paper">
+          <h3>Lerato Khumalo</h3>
+          <p class="cv-role">Graduate Intern</p>
+          <hr />
+          <p class="cv-text">Motivated graduate seeking entry-level opportunities.</p>
+          <p class="cv-text small">Education. Skills. Projects.</p>
+        </div>
       </div>
     </div>
 
-    <div class="cv-example-card">
-      <span class="cv-badge recommended">👍 Recommended</span>
-      <div class="cv-paper">
-        <h3>Thabo Mokoena</h3>
-        <p class="cv-role">Retail Supervisor</p>
-        <hr>
-        <p class="cv-text">Customer-focused retail leader with strong team skills.</p>
-        <p class="cv-text small">Work History · Skills · References</p>
+    <div class="examples-cta">
+      <a href="signup.html" class="primary-btn">Create my CV like this</a>
+      <p class="examples-note">Free to build. Pay only when you download.</p>
+    </div>
+  </section>
+
+  <section class="features">
+    <div class="feature">
+      <h3>Smart Builder</h3>
+      <p>We guide you step-by-step and automatically format a clean CV.</p>
+    </div>
+
+    <div class="feature">
+      <h3>ATS-Friendly Templates</h3>
+      <p>Designed to pass recruiter and screening systems.</p>
+    </div>
+
+    <div class="feature">
+      <h3>AI Writing Assistance</h3>
+      <p>Smart suggestions as you build, improve wording, and strengthen your summary.</p>
+    </div>
+
+    <div class="feature">
+      <h3>AI Job Finder</h3>
+      <p>After payment, the app reads your CV and opens matching job searches for you.</p>
+    </div>
+  </section>
+
+  <section class="job-discovery">
+    <div class="job-discovery-shell">
+      <div class="job-discovery-copy">
+        <h2>Your CV does more than download. It helps you locate real opportunities.</h2>
+        <p>
+          Once your CV is ready, CV for U can suggest realistic roles based on your
+          skills, experience, and location. It then builds direct search links so
+          you can start applying faster on the platforms South African job seekers
+          already use.
+        </p>
+
+        <ul class="job-discovery-points">
+          <li>Reads the saved CV and identifies strong-fit job titles</li>
+          <li>Suggests search keywords and role matches with fit scores</li>
+          <li>Opens matching searches for Indeed, LinkedIn, Pnet, Careers24 and Job Mail</li>
+        </ul>
+      </div>
+
+      <div class="job-discovery-panel">
+        <p class="job-discovery-label">Sample Job Finder Output</p>
+
+        <div class="job-discovery-grid">
+          <article class="job-discovery-card">
+            <div>
+              <h3>Administrative Assistant</h3>
+              <p>Suggested from office support, communication, and coordination experience.</p>
+            </div>
+            <span class="job-discovery-score">88%</span>
+          </article>
+
+          <article class="job-discovery-card">
+            <div>
+              <h3>Retail Supervisor</h3>
+              <p>Matched from customer service, team support, and day-to-day operations skills.</p>
+            </div>
+            <span class="job-discovery-score">84%</span>
+          </article>
+
+          <article class="job-discovery-card">
+            <div>
+              <h3>Junior Software Developer</h3>
+              <p>Matched from coding, problem-solving, and project-based technical experience.</p>
+            </div>
+            <span class="job-discovery-score">91%</span>
+          </article>
+        </div>
+
+        <div class="job-discovery-links">
+          <a href="signup.html" class="job-discovery-link">Indeed</a>
+          <a href="signup.html" class="job-discovery-link">LinkedIn</a>
+          <a href="signup.html" class="job-discovery-link">Pnet</a>
+          <a href="signup.html" class="job-discovery-link">Careers24</a>
+        </div>
       </div>
     </div>
+  </section>
 
-    <div class="cv-example-card">
-      <span class="cv-badge student">🎓 Student</span>
-      <div class="cv-paper">
-        <h3>Lerato Khumalo</h3>
-        <p class="cv-role">Graduate Intern</p>
-        <hr>
-        <p class="cv-text">Motivated graduate seeking entry-level opportunities.</p>
-        <p class="cv-text small">Education · Skills · Projects</p>
+  <section class="testimonials">
+    <h2 class="testimonials-title">What users say</h2>
+
+    <div class="testimonials-grid">
+      <div class="testimonial-card">
+        <p>"My CV went from basic to professional in 10 minutes."</p>
+        <h4>- Lunga, Cape Town</h4>
+      </div>
+
+      <div class="testimonial-card">
+        <p>"I got interview calls the same week."</p>
+        <h4>- Mpho, Johannesburg</h4>
+      </div>
+
+      <div class="testimonial-card">
+        <p>"Worth every rand. Simple and clean."</p>
+        <h4>- Nandi, Durban</h4>
       </div>
     </div>
-  </div>
+  </section>
 
-  <div class="examples-cta">
-    <a href="signup.html" class="primary-btn">Create my CV like this →</a>
-    <p class="examples-note">Free to build · Pay only when you download</p>
-  </div>
-</section>
+  <section class="how-it-works">
+    <h2 class="hiw-title">How it works</h2>
 
-<!-- ================= FEATURES ================= -->
-<section class="features">
-  <div class="feature">
-    <h3>Smart Builder</h3>
-    <p>We guide you step-by-step and automatically format a clean CV.</p>
-  </div>
+    <div class="hiw-steps">
+      <div class="hiw-step">
+        <span class="hiw-number">1</span>
+        <h3>Enter your details</h3>
+        <p>Fill in your info and watch it update instantly.</p>
+      </div>
 
-  <div class="feature">
-    <h3>ATS-Friendly Templates</h3>
-    <p>Designed to pass recruiter and screening systems.</p>
-  </div>
+      <div class="hiw-step">
+        <span class="hiw-number">2</span>
+        <h3>Choose a template</h3>
+        <p>Select a professional layout, improve the writing, and save the CV.</p>
+      </div>
 
-  <div class="feature">
-    <h3>AI Writing Assistance</h3>
-    <p>Smart suggestions as you build.</p>
-  </div>
-</section>
-
-<!-- ================= TESTIMONIALS ================= -->
-<section class="testimonials">
-  <h2 class="testimonials-title">What users say</h2>
-
-  <div class="testimonials-grid">
-    <div class="testimonial-card">
-      <p>“My CV went from basic to professional in 10 minutes.”</p>
-      <h4>— Lunga, Cape Town</h4>
+      <div class="hiw-step">
+        <span class="hiw-number">3</span>
+        <h3>Find jobs and download</h3>
+        <p>Unlock your CV, open matching job searches, and download your PDF.</p>
+      </div>
     </div>
+  </section>
 
-    <div class="testimonial-card">
-      <p>“I got interview calls the same week.”</p>
-      <h4>— Mpho, Johannesburg</h4>
+  <footer class="landing-footer">
+    <p>Copyright 2026 CV for U - Made in South Africa</p>
+
+    <div class="footer-links">
+      <a href="privacy.html">Privacy Policy</a>
+      <a href="terms.html">Terms of Service</a>
+      <a href="help.html">Support</a>
     </div>
+  </footer>
 
-    <div class="testimonial-card">
-      <p>“Worth every rand. Simple and clean.”</p>
-      <h4>— Nandi, Durban</h4>
-    </div>
-  </div>
-</section>
+  <script src="js/site.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const createBtn = document.getElementById("createCvBtn");
 
-<!-- ================= HOW IT WORKS ================= -->
-<section class="how-it-works">
-  <h2 class="hiw-title">How it works</h2>
-
-  <div class="hiw-steps">
-    <div class="hiw-step">
-      <span class="hiw-number">1</span>
-      <h3>Enter your details</h3>
-      <p>Fill in your info and watch it update instantly.</p>
-    </div>
-
-    <div class="hiw-step">
-      <span class="hiw-number">2</span>
-      <h3>Choose a template</h3>
-      <p>Select a professional layout and color.</p>
-    </div>
-
-    <div class="hiw-step">
-      <span class="hiw-number">3</span>
-      <h3>Download instantly</h3>
-      <p>Download as PDF or Word.</p>
-    </div>
-  </div>
-</section>
-
-<!-- ================= FOOTER ================= -->
-<footer class="landing-footer">
-  <p>© 2026 CV for U — Made with ❤️ in South Africa</p>
-
-  <div class="footer-links">
-    <a href="privacy.html">Privacy Policy</a>
-    <a href="terms.html">Terms of Service</a>
-    <a href="help.html">Support</a>
-  </div>
-</footer>
-
-<!-- ================= SCRIPTS ================= -->
-<script src="js/site.js"></script>
-<script>
-  document.addEventListener("DOMContentLoaded", () => {
-    const createBtn = document.getElementById("createCvBtn");
-
-    /* ---------- AUTH GUARD ---------- */
-    function requireAuth(target) {
-      const user = JSON.parse(localStorage.getItem("user"));
-      if (!user || !user.token) {
-        window.location.href = "login.html";
-      } else {
-        window.location.href = target;
+      function requireAuth(target) {
+        const user = JSON.parse(localStorage.getItem("user"));
+        if (!user || !user.token) {
+          window.location.href = "login.html";
+        } else {
+          window.location.href = target;
+        }
       }
-    }
 
-    /* ---------- CREATE CV BUTTON ---------- */
-    if (createBtn) {
-      createBtn.addEventListener("click", () => {
-        requireAuth("create-cv.html");
-      });
-    }
-
-  });
-  
-</script>
+      if (createBtn) {
+        createBtn.addEventListener("click", () => {
+          requireAuth("create-cv.html");
+        });
+      }
+    });
+  </script>
 </body>
 </html>

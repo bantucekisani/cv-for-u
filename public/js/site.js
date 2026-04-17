@@ -5,7 +5,7 @@ document.addEventListener("DOMContentLoaded", () => {
     "dashboard.html": "Dashboard - CV for U",
     "help.html": "Help and Support - CV for U",
     "improve-cv.html": "CV for U - Improve My CV",
-    "index.html": "CV for U - Online CV Maker",
+    "index.html": "CV for U - Online CV Maker and Job Finder",
     "pricing.html": "Pricing - CV for U",
     "privacy.html": "Privacy Policy - CV for U",
     "terms.html": "Terms of Service - CV for U"

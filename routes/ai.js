@@ -657,6 +657,14 @@ router.post("/job-finder", auth, async (req, res) => {
       });
     }
 
+    const jobFinderUsesRemaining = Math.max(0, Number(cv.jobFinderUsesRemaining || 0));
+    if (jobFinderUsesRemaining <= 0) {
+      return res.status(402).json({
+        success: false,
+        msg: "You have used all 4 Find Me a Job searches. Pay R25 to unlock 4 more."
+      });
+    }
+
     const normalizedCv = normalizeCvPayload(cv);
     const data = await createJsonCompletion({
       systemPrompt:
@@ -749,12 +757,14 @@ Return JSON only:
 
     cv.jobSearches = [historyEntry, ...(Array.isArray(cv.jobSearches) ? cv.jobSearches : [])]
       .slice(0, 10);
+    cv.jobFinderUsesRemaining = Math.max(0, jobFinderUsesRemaining - 1);
     await cv.save();
 
     res.json({
       success: true,
       finder: historyEntry,
-      history: cv.jobSearches
+      history: cv.jobSearches,
+      jobFinderUsesRemaining: cv.jobFinderUsesRemaining
     });
   } catch (err) {
     console.error("AI JOB FINDER ERROR:", err);

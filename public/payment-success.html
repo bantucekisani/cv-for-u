@@ -17,6 +17,7 @@
       const params = new URLSearchParams(window.location.search);
       const cvId = params.get("cv");
       const type = params.get("type");
+      const next = params.get("next");
 
       if (!cvId) {
         window.location.replace("dashboard.html");
@@ -41,6 +42,7 @@
         }
 
         const needsCoverCredit = type === "cover-letter";
+        const needsJobFinderCredit = type === "job-finder";
         const deadline = Date.now() + 20000;
 
         while (Date.now() < deadline) {
@@ -56,7 +58,9 @@
             if (res.ok && data?.success && cv) {
               const hasNeededCredits = needsCoverCredit
                 ? Number(cv.coverLettersRemaining || 0) > 0
-                : Number(cv.downloadsRemaining || 0) > 0;
+                : needsJobFinderCredit
+                  ? Number(cv.jobFinderUsesRemaining || 0) > 0
+                  : Number(cv.downloadsRemaining || 0) > 0;
 
               if (hasNeededCredits) {
                 return;
@@ -82,7 +86,9 @@
 
       await waitForCredits();
 
-      window.location.replace(`create-cv.html?id=${cvId}&v=20260410`);
+      const shouldOpenJobFinder = type === "job-finder" || next === "job-finder";
+      const openJobFinder = shouldOpenJobFinder ? "&openJobFinder=1" : "";
+      window.location.replace(`create-cv.html?id=${cvId}&v=20260418${openJobFinder}`);
     })();
   </script>
 </body>

@@ -15,6 +15,7 @@ router.post("/save", auth, async (req, res) => {
  // 🔒 Never allow autosave to touch payment fields
     delete body.downloadsRemaining;
     delete body.coverLettersRemaining;
+    delete body.jobFinderUsesRemaining;
     delete body.isPaid;
     delete body.lastPaymentId;
     delete body.jobMatches;
@@ -102,7 +103,7 @@ router.post("/save", auth, async (req, res) => {
 router.get("/my-cvs", auth, async (req, res) => {
   try {
     const cvs = await CV.find({ userId: req.user.id })
-      .select("cvName name isPaid jobMatches jobSearches updatedAt createdAt")
+      .select("cvName name isPaid jobMatches jobSearches jobFinderUsesRemaining updatedAt createdAt")
       .sort({ updatedAt: -1 });
 
     res.json({ success: true, cvs });
@@ -131,6 +132,11 @@ router.post("/duplicate/:id", auth, async (req, res) => {
     copy.userId = req.user.id;
     copy.cvName = `${cv.cvName || cv.name} (Copy)`;
     copy.updatedAt = new Date();
+    copy.isPaid = false;
+    copy.downloadsRemaining = 0;
+    copy.coverLettersRemaining = 0;
+    copy.jobFinderUsesRemaining = 0;
+    copy.lastPaymentId = null;
     copy.jobMatches = [];
     copy.jobSearches = [];
 

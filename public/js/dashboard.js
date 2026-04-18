@@ -48,10 +48,17 @@ function buildJobFinderSummary(cv) {
   const searches = Array.isArray(cv.jobSearches) ? cv.jobSearches : [];
   const latest = searches[0] || null;
   const topRole = latest?.targetRoles?.[0] || null;
+  const remaining = Math.max(0, Number(cv.jobFinderUsesRemaining || 0));
+  const remainingLine = cv.isPaid === true
+    ? `<p>Find Me a Job searches left: ${remaining}</p>`
+    : "<p>Pay for this CV to unlock 4 Find Me a Job searches.</p>";
 
   if (!latest || !topRole) {
     return `
-      <p class="cv-job-match cv-job-match-empty">No saved job searches yet.</p>
+      <div class="cv-job-match cv-job-match-empty">
+        <p>No saved job searches yet.</p>
+        ${remainingLine}
+      </div>
     `;
   }
 
@@ -66,8 +73,23 @@ function buildJobFinderSummary(cv) {
       <p><strong>Latest job search:</strong> ${Number(topRole.matchScore || 0)}% fit for ${safeTitle}</p>
       <p>${safeVerdict}${safeDate ? ` | ${safeDate}` : ""}</p>
       <p>Saved searches: ${searches.length}</p>
+      ${remainingLine}
     </div>
   `;
+}
+
+function getJobFinderButtonLabel(cv) {
+  const remaining = Math.max(0, Number(cv.jobFinderUsesRemaining || 0));
+
+  if (cv.isPaid !== true) {
+    return "Unlock Job Finder";
+  }
+
+  if (remaining > 0) {
+    return `Find Jobs (${remaining} left)`;
+  }
+
+  return "Buy 4 More Searches";
 }
 
 /* ======================================
@@ -111,7 +133,12 @@ async function loadCVs() {
 
         <div class="cv-actions">
           <button class="small-btn edit-btn" data-id="${cv._id}">Edit</button>
-          <button class="small-btn match-btn" data-id="${cv._id}">${cv.isPaid === true ? "Find Jobs" : "Unlock Job Finder"}</button>
+          <button
+            class="small-btn match-btn"
+            data-id="${cv._id}"
+            data-paid="${cv.isPaid === true}"
+            data-job-finder-remaining="${Math.max(0, Number(cv.jobFinderUsesRemaining || 0))}"
+          >${getJobFinderButtonLabel(cv)}</button>
           <button class="small-btn rename-btn" data-id="${cv._id}">Rename</button>
           <button class="small-btn duplicate-btn" data-id="${cv._id}">Duplicate</button>
           <button class="small-btn danger-small delete-btn" data-id="${cv._id}">Delete</button>
@@ -145,7 +172,21 @@ document.addEventListener("click", async (e) => {
   /* JOB MATCH */
   const matchBtn = e.target.closest(".match-btn");
   if (matchBtn) {
-    window.location.href = `create-cv.html?id=${matchBtn.dataset.id}&openJobFinder=1`;
+    const cvId = matchBtn.dataset.id;
+    const isPaid = matchBtn.dataset.paid === "true";
+    const remaining = Math.max(0, Number(matchBtn.dataset.jobFinderRemaining || 0));
+
+    if (!isPaid) {
+      window.location.href = `pay.html?type=cv&cv=${cvId}&next=job-finder`;
+      return;
+    }
+
+    if (remaining <= 0) {
+      window.location.href = `pay.html?type=job-finder&cv=${cvId}`;
+      return;
+    }
+
+    window.location.href = `create-cv.html?id=${cvId}&openJobFinder=1`;
     return;
   }
 

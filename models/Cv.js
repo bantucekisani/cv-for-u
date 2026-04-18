@@ -114,6 +114,7 @@ isPaid: { type: Boolean, default: false },
 /* ===== DOWNLOAD CREDITS ===== */
 downloadsRemaining: { type: Number, default: 0 },
 coverLettersRemaining: { type: Number, default: 0 },
+jobFinderUsesRemaining: { type: Number, default: 0 },
 
 /* ===== PAYFAST SAFETY ===== */
 lastPaymentId: { type: String, default: null },

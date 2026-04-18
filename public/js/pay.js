@@ -16,6 +16,7 @@ payBtn?.addEventListener("click", async () => {
 
     const cvId = window.PAY_CV_ID;
     const type = window.PAY_TYPE || "cv";
+    const next = window.PAY_NEXT || "";
 
     if (!cvId) {
       throw new Error("Missing CV ID");
@@ -27,7 +28,7 @@ payBtn?.addEventListener("click", async () => {
         "Content-Type": "application/json",
         Authorization: `Bearer ${user.token}`
       },
-      body: JSON.stringify({ cvId, type })
+      body: JSON.stringify({ cvId, type, next })
     });
 
     const data = await res.json();

@@ -26,7 +26,7 @@ const createPaymentLimiter = rateLimit({
 ====================================================== */
 router.post("/create", auth, createPaymentLimiter, async (req, res) => {
   try {
-    const { cvId, type } = req.body;
+    const { cvId, type, next } = req.body;
     const purchase = getPurchaseConfig(type);
 
     if (!purchase) {
@@ -55,13 +55,21 @@ router.post("/create", auth, createPaymentLimiter, async (req, res) => {
       });
     }
 
+    if (purchase.type !== "cv" && cv.isPaid !== true) {
+      return res.status(400).json({
+        success: false,
+        message: "Please pay for the CV first before buying add-ons"
+      });
+    }
+
+    const nextStep = next === "job-finder" ? "job-finder" : "";
     const publicUrl =
       process.env.PUBLIC_URL ||
       process.env.APP_URL ||
       "https://cv-for-u.onrender.com";
 
     const paymentId = `${purchase.type}-${cvId}-${req.user.id}-${Date.now()}`;
-    const returnUrl = `${publicUrl}/payment-success.html?type=${purchase.type}&cv=${cvId}`;
+    const returnUrl = `${publicUrl}/payment-success.html?type=${purchase.type}&cv=${cvId}${nextStep ? `&next=${nextStep}` : ""}`;
     const cancelUrl = `${publicUrl}/payment-cancel.html`;
     const notifyUrl = `${publicUrl}/api/payfast/notify`;
 

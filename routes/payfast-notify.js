@@ -20,25 +20,20 @@ function parsePayfastPayload(rawBody) {
 }
 
 function parsePaymentId(paymentId) {
-  const parts = String(paymentId || "").split("-");
+  const raw = String(paymentId || "");
+  const type = ["cover-letter", "job-finder", "cv"]
+    .find(value => raw.startsWith(`${value}-`));
 
-  if (paymentId.startsWith("cover-letter-")) {
-    return {
-      type: "cover-letter",
-      cvId: parts[2],
-      userId: parts[3]
-    };
+  if (!type) {
+    return null;
   }
 
-  if (paymentId.startsWith("cv-")) {
-    return {
-      type: "cv",
-      cvId: parts[1],
-      userId: parts[2]
-    };
+  const [cvId, userId] = raw.slice(type.length + 1).split("-");
+  if (!cvId || !userId) {
+    return null;
   }
 
-  return null;
+  return { type, cvId, userId };
 }
 
 /* ======================================================
@@ -109,10 +104,15 @@ router.post("/notify", async (req, res) => {
       return res.status(200).send("Already processed");
     }
 
-    await CV.findByIdAndUpdate(parsed.cvId, {
-      $set: { isPaid: true },
+    const update = {
       $inc: purchase.credits
-    });
+    };
+
+    if (parsed.type === "cv") {
+      update.$set = { isPaid: true };
+    }
+
+    await CV.findByIdAndUpdate(parsed.cvId, update);
 
     return res.status(200).send("OK");
   } catch (err) {

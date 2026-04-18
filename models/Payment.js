@@ -7,7 +7,7 @@ const PaymentSchema = new mongoose.Schema(
     cvId: { type: mongoose.Schema.Types.ObjectId, ref: "CV" },
     type: {
       type: String,
-      enum: ["cv", "cover-letter"],
+      enum: ["cv", "cover-letter", "job-finder"],
       required: true
     },
     amount: { type: Number, required: true },

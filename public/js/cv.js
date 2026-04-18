@@ -30,7 +30,13 @@ console.log("🆔 editingId:", editingId);
 let pendingOpenJobMatch =
   params.get("openJobFinder") === "1" ||
   params.get("openJobMatch") === "1";
-let currentCv = { _id: null, isPaid: false, jobMatches: [], jobSearches: [] };
+let currentCv = {
+  _id: null,
+  isPaid: false,
+  jobFinderUsesRemaining: 0,
+  jobMatches: [],
+  jobSearches: []
+};
 
 
 
@@ -55,6 +61,31 @@ function updateCoverLetterCounter() {
     remaining > 0
       ? `Download Cover Letter (${remaining})`
       : "Pay to download Cover Letter";
+}
+
+function getJobFinderUsesRemaining() {
+  return Math.max(0, Number(currentCv?.jobFinderUsesRemaining || 0));
+}
+
+function updateJobFinderButton() {
+  const btn = $("jobMatchGenerateBtn");
+  if (!btn) return;
+
+  if (!currentCv._id) {
+    btn.textContent = "Save CV to use Find Jobs";
+    return;
+  }
+
+  if (currentCv.isPaid !== true) {
+    btn.textContent = "Pay for CV to unlock Find Jobs";
+    return;
+  }
+
+  const remaining = getJobFinderUsesRemaining();
+  btn.textContent =
+    remaining > 0
+      ? `Find Jobs for Me (${remaining} left)`
+      : "Pay R25 for 4 more job searches";
 }
 
 function disableBtn(id, text) {
@@ -479,6 +510,7 @@ if (editingId) {
   cvLoaded = true; // allow saving
   setStatus("New CV", "#2563eb");
   renderJobMatchHistory([]);
+  updateJobFinderButton();
 
 }
 
@@ -517,6 +549,7 @@ function openJobMatchModal() {
     locationInput.value = currentCv.location;
   }
 
+  updateJobFinderButton();
   renderJobMatchResult((currentCv.jobSearches || [])[0] || null);
   renderJobMatchHistory(currentCv.jobSearches || []);
   openModal(jobMatchModal);
@@ -935,7 +968,8 @@ console.log("MY-CVS STATUS:", res.status);
   currentCv = {
     ...cv,
     _id: cv._id,
-    isPaid: cv.isPaid === true
+    isPaid: cv.isPaid === true,
+    jobFinderUsesRemaining: Math.max(0, Number(cv.jobFinderUsesRemaining || 0))
   };
 localStorage.removeItem("lastCvId");
   renderJobMatchHistory(currentCv.jobSearches || []);
@@ -943,6 +977,7 @@ localStorage.removeItem("lastCvId");
   updateDownloadCounter();
   updateDownloadButton();
   updateCoverLetterCounter();
+  updateJobFinderButton();
 
   /* ===============================
      ✅ RESTORE COVER LETTER HERE
@@ -1094,9 +1129,14 @@ const timeout = setTimeout(() => controller.abort(), 20000);
       throw new Error("Invalid save response");
     }
 
-    currentCv = data.cv;
+    currentCv = {
+      ...data.cv,
+      isPaid: data.cv?.isPaid === true,
+      jobFinderUsesRemaining: Math.max(0, Number(data.cv?.jobFinderUsesRemaining || 0))
+    };
     cvLoaded = true;
     renderJobMatchHistory(currentCv.jobSearches || []);
+    updateJobFinderButton();
 
     if (!silent) {
       setStatus("Saved", "#16a34a");
@@ -1225,15 +1265,20 @@ $("suggestSkillsBtn")?.addEventListener("click", async () => {
   const saved = await saveCV({ silent: true });
   if (!saved || !currentCv._id) {
     setJobMatchMessage("Please save your CV before running the job finder.");
+    updateJobFinderButton();
     return;
   }
 
   if (currentCv.isPaid !== true) {
-    setJobMatchMessage("Job finder is available after this CV has been paid for.");
+    window.location.href = `pay.html?type=cv&cv=${currentCv._id}&next=job-finder`;
     return;
   }
 
-  const originalText = btn.textContent;
+  if (getJobFinderUsesRemaining() <= 0) {
+    window.location.href = `pay.html?type=job-finder&cv=${currentCv._id}`;
+    return;
+  }
+
   btn.disabled = true;
   btn.textContent = "Finding jobs...";
 
@@ -1249,9 +1294,17 @@ $("suggestSkillsBtn")?.addEventListener("click", async () => {
     }
 
     renderJobMatchResult(res.finder);
+    currentCv.jobFinderUsesRemaining = Math.max(
+      0,
+      Number(res.jobFinderUsesRemaining ?? currentCv.jobFinderUsesRemaining ?? 0)
+    );
     currentCv.jobSearches = Array.isArray(res.history) ? res.history : (currentCv.jobSearches || []);
     renderJobMatchHistory(currentCv.jobSearches);
-    setJobMatchMessage("Job finder ready.", "success");
+    updateJobFinderButton();
+    setJobMatchMessage(
+      `Job finder ready. ${currentCv.jobFinderUsesRemaining} searches left.`,
+      "success"
+    );
     setStatus("Job finder ready", "#16a34a");
   } catch (err) {
     setJobMatchMessage(
@@ -1259,7 +1312,7 @@ $("suggestSkillsBtn")?.addEventListener("click", async () => {
     );
   } finally {
     btn.disabled = false;
-    btn.textContent = originalText;
+    updateJobFinderButton();
   }
  });
 

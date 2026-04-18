@@ -8,7 +8,7 @@ const User = require("../models/User");
 const CV = require("../models/Cv");
 const Payment = require("../models/Payment");
 
-const PAYMENT_TYPES = ["cv", "cover-letter"];
+const PAYMENT_TYPES = ["cv", "cover-letter", "job-finder"];
 const MAX_PAYMENT_LIMIT = 250;
 
 function toAmount(value) {
@@ -187,10 +187,15 @@ function buildMonthlyCountSeries(records = [], months = 6) {
 function buildPaymentTypeSummary(payments = []) {
   return PAYMENT_TYPES.map(type => {
     const matching = payments.filter(payment => payment.type === type);
+    const labelMap = {
+      cv: "CVs",
+      "cover-letter": "Cover Letters",
+      "job-finder": "Find Me a Job Bundles"
+    };
 
     return {
       type,
-      label: type === "cover-letter" ? "Cover Letters" : "CVs",
+      label: labelMap[type] || type,
       count: matching.length,
       amount: sumAmounts(matching)
     };
@@ -202,13 +207,15 @@ function buildPaymentSummary(payments = []) {
   const paymentTypes = buildPaymentTypeSummary(payments);
   const cvSummary = paymentTypes.find(item => item.type === "cv");
   const coverLetterSummary = paymentTypes.find(item => item.type === "cover-letter");
+  const jobFinderSummary = paymentTypes.find(item => item.type === "job-finder");
 
   return {
     count: payments.length,
     revenue,
     averageOrderValue: payments.length ? roundCurrency(revenue / payments.length) : 0,
     cvCount: cvSummary?.count || 0,
-    coverLetterCount: coverLetterSummary?.count || 0
+    coverLetterCount: coverLetterSummary?.count || 0,
+    jobFinderCount: jobFinderSummary?.count || 0
   };
 }
 

@@ -25,7 +25,7 @@
     <h1 id="payTitle">Unlock your CV downloads</h1>
 
     <p id="payDescription">
-      Pay once to unlock 4 CV PDF downloads and 1 AI cover letter for this CV.
+      Pay once to unlock 4 CV PDF downloads, 1 AI cover letter, and 4 Find Me a Job searches for this CV.
     </p>
 
     <h2 id="payAmount">R40.00</h2>
@@ -41,10 +41,17 @@
     const params = new URLSearchParams(window.location.search);
     const type = params.get("type");
     const cvId = params.get("cv");
+    const next = params.get("next");
 
     window.PAY_CV_ID = cvId;
-    window.PAY_TYPE = type === "cover-letter" ? "cover-letter" : "cv";
-    window.PAY_AMOUNT = window.PAY_TYPE === "cover-letter" ? 25 : 40;
+    window.PAY_NEXT = next === "job-finder" ? "job-finder" : "";
+    window.PAY_TYPE =
+      type === "cover-letter"
+        ? "cover-letter"
+        : type === "job-finder"
+          ? "job-finder"
+          : "cv";
+    window.PAY_AMOUNT = window.PAY_TYPE === "cv" ? 40 : 25;
 
     const titleEl = document.getElementById("payTitle");
     const descEl = document.getElementById("payDescription");
@@ -54,6 +61,11 @@
       titleEl.textContent = "Unlock 1 AI cover letter";
       descEl.textContent =
         "Pay once to unlock 1 AI-generated cover letter download for this CV.";
+      amountEl.textContent = "R25.00";
+    } else if (window.PAY_TYPE === "job-finder") {
+      titleEl.textContent = "Unlock 4 Find Me a Job searches";
+      descEl.textContent =
+        "Pay R25 to unlock 4 more Find Me a Job searches for this CV.";
       amountEl.textContent = "R25.00";
     }
 
@@ -68,6 +80,6 @@
 
   <script src="js/api.js"></script>
   <script src="js/auth.js"></script>
-  <script src="js/pay.js?v=20260410"></script>
+  <script src="js/pay.js?v=20260418"></script>
 </body>
 </html>

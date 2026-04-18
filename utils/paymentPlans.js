@@ -5,7 +5,8 @@ const PURCHASES = {
     amountCents: 4000,
     credits: {
       downloadsRemaining: 4,
-      coverLettersRemaining: 1
+      coverLettersRemaining: 1,
+      jobFinderUsesRemaining: 4
     }
   },
   "cover-letter": {
@@ -14,6 +15,14 @@ const PURCHASES = {
     amountCents: 2500,
     credits: {
       coverLettersRemaining: 1
+    }
+  },
+  "job-finder": {
+    type: "job-finder",
+    itemName: "Find Me a Job Bundle",
+    amountCents: 2500,
+    credits: {
+      jobFinderUsesRemaining: 4
     }
   }
 };

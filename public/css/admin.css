@@ -424,6 +424,11 @@ td {
   color: #166534;
 }
 
+.payment-job-finder {
+  background: #fef3c7;
+  color: #92400e;
+}
+
 .empty-state {
   margin: 16px 0 0;
   text-align: center;

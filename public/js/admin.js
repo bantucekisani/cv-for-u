@@ -303,11 +303,23 @@
   }
 
   function paymentBadgeClass(type) {
-    return type === "cover-letter" ? "payment-cover-letter" : "payment-cv";
+    const classMap = {
+      cv: "payment-cv",
+      "cover-letter": "payment-cover-letter",
+      "job-finder": "payment-job-finder"
+    };
+
+    return classMap[type] || "payment-cv";
   }
 
   function paymentLabel(type) {
-    return type === "cover-letter" ? "Cover Letter" : "CV";
+    const labelMap = {
+      cv: "CV",
+      "cover-letter": "Cover Letter",
+      "job-finder": "Find Me a Job"
+    };
+
+    return labelMap[type] || "CV";
   }
 
   function renderPayments(payments = []) {
@@ -418,6 +430,7 @@
     setMetric("paymentsCount", summary.count);
     setMetric("paymentsCvCount", summary.cvCount);
     setMetric("paymentsCoverCount", summary.coverLetterCount);
+    setMetric("paymentsJobFinderCount", summary.jobFinderCount);
   }
 
   async function loadOverview() {

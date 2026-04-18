@@ -145,11 +145,15 @@ function setJobMatchMessage(message, type = "error") {
 
 function renderJobBoardLinks(target = {}) {
   const links = [
+    { label: "Google Jobs", url: target.googleJobsUrl },
     { label: "Indeed", url: target.indeedUrl },
     { label: "LinkedIn", url: target.linkedinUrl },
     { label: "Pnet", url: target.pnetUrl },
     { label: "Careers24", url: target.careers24Url },
-    { label: "Job Mail", url: target.jobmailUrl }
+    { label: "Job Mail", url: target.jobmailUrl },
+    { label: "Jobberman", url: target.jobbermanUrl },
+    { label: "MyJobMag", url: target.myJobMagUrl },
+    { label: "Jobzilla", url: target.jobzillaUrl }
   ].filter(item => /^https?:\/\//i.test(item.url || ""));
 
   if (!links.length) {
@@ -182,7 +186,7 @@ function renderJobMatchResult(result = null) {
   resultBox.innerHTML = `
     <div class="job-match-meta">
       <strong>Job search plan ready</strong>
-      <div>${escapeHtml(result.locationFocus || "South Africa")}</div>
+      <div>${escapeHtml(result.locationFocus || "Preferred location")}</div>
     </div>
     ${result.profileSummary ? `
       <div class="job-match-card" style="margin-bottom:12px;">
@@ -212,7 +216,7 @@ function renderJobMatchResult(result = null) {
             <div class="job-match-history-header">
               <div>
                 <strong>${escapeHtml(target.roleTitle || "Target role")}</strong>
-                <div class="job-match-meta">${escapeHtml(target.location || result.locationFocus || "South Africa")}</div>
+                <div class="job-match-meta">${escapeHtml(target.location || result.locationFocus || "Preferred location")}</div>
               </div>
               <span class="job-match-score" style="background:${scoreColor};">${score}%</span>
             </div>
@@ -263,11 +267,22 @@ function renderJobMatchHistory(matches = []) {
     ${items.slice(0, 5).map(item => {
       const topRole = item?.targetRoles?.[0] || {};
       const jobTitle = escapeHtml(topRole.roleTitle || "Untitled role");
-      const locationFocus = escapeHtml(item.locationFocus || "South Africa");
+      const locationFocus = escapeHtml(item.locationFocus || "Preferred location");
       const dateLabel = escapeHtml(formatJobMatchDate(item.createdAt));
       const summary = escapeHtml(item.profileSummary || topRole.whyFit || "");
-      const safeUrl = /^https?:\/\//i.test(topRole.indeedUrl || "")
-        ? escapeHtml(topRole.indeedUrl)
+      const primaryUrl = [
+        topRole.googleJobsUrl,
+        topRole.indeedUrl,
+        topRole.linkedinUrl,
+        topRole.jobbermanUrl,
+        topRole.myJobMagUrl,
+        topRole.jobzillaUrl,
+        topRole.pnetUrl,
+        topRole.careers24Url,
+        topRole.jobmailUrl
+      ].find(url => /^https?:\/\//i.test(url || ""));
+      const safeUrl = /^https?:\/\//i.test(primaryUrl || "")
+        ? escapeHtml(primaryUrl)
         : "";
 
       return `
@@ -281,7 +296,7 @@ function renderJobMatchHistory(matches = []) {
           </div>
           <p class="job-match-summary-line">${Number(item.targetRoles?.length || 0)} search target(s)</p>
           ${summary ? `<p class="job-match-summary-line">${summary}</p>` : ""}
-          ${safeUrl ? `<a class="job-match-link" href="${safeUrl}" target="_blank" rel="noopener">Open top Indeed search</a>` : ""}
+          ${safeUrl ? `<a class="job-match-link" href="${safeUrl}" target="_blank" rel="noopener">Open top job search</a>` : ""}
         </div>
       `;
     }).join("")}

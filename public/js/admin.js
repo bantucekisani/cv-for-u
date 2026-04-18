@@ -20,7 +20,10 @@
   };
 
   const state = {
-    filters: { ...defaultFilters }
+    filters: { ...defaultFilters },
+    overview: null,
+    paymentSummary: null,
+    payments: []
   };
 
   const $ = id => document.getElementById(id);
@@ -101,6 +104,11 @@
     return cell;
   }
 
+  function toNumber(value) {
+    const number = Number(value || 0);
+    return Number.isFinite(number) ? number : 0;
+  }
+
   async function fetchJson(url) {
     const response = await fetch(url, {
       headers: {
@@ -157,6 +165,125 @@
       from: $("filterFrom").value || "",
       to: $("filterTo").value || "",
       limit: $("filterLimit").value || defaultFilters.limit
+    };
+  }
+
+  function formatFilterType(type) {
+    const labels = {
+      all: "All payments",
+      cv: "CV only",
+      "cover-letter": "Cover letter only",
+      "job-finder": "Find Me a Job only"
+    };
+
+    return labels[type] || labels.all;
+  }
+
+  function getTopItem(items = [], valueKey = "amount") {
+    return (Array.isArray(items) ? items : []).reduce((top, item) => {
+      if (!top) return item;
+      return toNumber(item?.[valueKey]) > toNumber(top?.[valueKey]) ? item : top;
+    }, null);
+  }
+
+  function buildPdfInsights(overview = {}, paymentSummary = {}) {
+    const metrics = overview?.metrics || {};
+    const trends = overview?.trends || {};
+    const paymentTypes = Array.isArray(overview?.paymentTypes) ? overview.paymentTypes : [];
+    const bestRevenueMonth = getTopItem(trends.revenueByMonth, "amount");
+    const bestUserGrowthMonth = getTopItem(trends.usersByMonth, "count");
+    const strongestProduct = getTopItem(paymentTypes, "amount");
+    const insights = [];
+
+    insights.push(
+      `Revenue this month is ${formatCurrency(metrics.revenueThisMonth)} with an average order value of ${formatCurrency(metrics.averageOrderValue)}.`
+    );
+
+    if (bestRevenueMonth && toNumber(bestRevenueMonth.amount) > 0) {
+      insights.push(
+        `Best revenue month in the last 6 months: ${formatMonthLabel(bestRevenueMonth.label)} at ${formatCurrency(bestRevenueMonth.amount)}.`
+      );
+    }
+
+    if (strongestProduct && toNumber(strongestProduct.amount) > 0) {
+      insights.push(
+        `Top earning product right now: ${strongestProduct.label || strongestProduct.type} with ${formatCurrency(strongestProduct.amount)} from ${formatCount(strongestProduct.count)} payments.`
+      );
+    }
+
+    if (bestUserGrowthMonth && toNumber(bestUserGrowthMonth.count) > 0) {
+      insights.push(
+        `Strongest signup month in the last 6 months: ${formatMonthLabel(bestUserGrowthMonth.label)} with ${formatCount(bestUserGrowthMonth.count)} new users.`
+      );
+    }
+
+    insights.push(
+      `Current payment filter shows ${formatCount(paymentSummary.count)} payments worth ${formatCurrency(paymentSummary.revenue)}.`
+    );
+
+    return insights;
+  }
+
+  function createPdfWriter(doc) {
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 52;
+    let y = margin;
+
+    function ensureSpace(spaceNeeded = 18) {
+      if (y + spaceNeeded <= pageHeight - margin) {
+        return;
+      }
+
+      doc.addPage();
+      y = margin;
+    }
+
+    function writeLine(text, options = {}) {
+      const {
+        fontSize = 11,
+        color = [15, 23, 42],
+        indent = 0,
+        gap = 16,
+        fontStyle = "normal"
+      } = options;
+
+      const maxWidth = pageWidth - margin * 2 - indent;
+      const lines = doc.splitTextToSize(String(text || ""), Math.max(maxWidth, 80));
+
+      doc.setFont("helvetica", fontStyle);
+      doc.setFontSize(fontSize);
+      doc.setTextColor(...color);
+
+      lines.forEach(line => {
+        ensureSpace(gap);
+        doc.text(line, margin + indent, y);
+        y += gap;
+      });
+    }
+
+    function writeSection(title) {
+      y += 6;
+      ensureSpace(30);
+      writeLine(title, {
+        fontSize: 15,
+        gap: 20,
+        fontStyle: "bold",
+        color: [37, 99, 235]
+      });
+    }
+
+    function writeDivider() {
+      ensureSpace(18);
+      doc.setDrawColor(226, 232, 240);
+      doc.line(margin, y, pageWidth - margin, y);
+      y += 14;
+    }
+
+    return {
+      writeLine,
+      writeSection,
+      writeDivider
     };
   }
 
@@ -436,7 +563,8 @@
   async function loadOverview() {
     const data = await fetchJson(`${API_BASE}/api/admin/overview`);
     if (!data) return;
-    renderOverview(data.overview || {});
+    state.overview = data.overview || {};
+    renderOverview(state.overview);
   }
 
   async function loadPayments() {
@@ -444,8 +572,11 @@
     const data = await fetchJson(`${API_BASE}/api/admin/payments?${query}`);
     if (!data) return;
 
-    renderPaymentSummary(data.summary || {});
-    renderPayments(data.payments || []);
+    state.paymentSummary = data.summary || {};
+    state.payments = Array.isArray(data.payments) ? data.payments : [];
+
+    renderPaymentSummary(state.paymentSummary);
+    renderPayments(state.payments);
   }
 
   async function exportPayments() {
@@ -494,6 +625,151 @@
     }
   }
 
+  async function exportPdfReport() {
+    const button = $("exportPdfBtn");
+    const originalText = button.textContent;
+
+    try {
+      button.disabled = true;
+      button.textContent = "Preparing PDF...";
+
+      if (!state.overview || !state.paymentSummary) {
+        await refreshDashboard();
+      }
+
+      const jsPDF = window.jspdf?.jsPDF;
+      if (!jsPDF) {
+        throw new Error("PDF library unavailable");
+      }
+
+      const doc = new jsPDF({
+        orientation: "portrait",
+        unit: "pt",
+        format: "a4"
+      });
+      const writer = createPdfWriter(doc);
+      const overview = state.overview || {};
+      const metrics = overview.metrics || {};
+      const trends = overview.trends || {};
+      const paymentTypes = Array.isArray(overview.paymentTypes) ? overview.paymentTypes : [];
+      const paymentSummary = state.paymentSummary || {};
+      const payments = Array.isArray(state.payments) ? state.payments.slice(0, 10) : [];
+      const generatedAt = new Date().toLocaleString("en-ZA", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+
+      writer.writeLine("CV for U Admin Stats Report", {
+        fontSize: 20,
+        gap: 24,
+        fontStyle: "bold",
+        color: [15, 23, 42]
+      });
+      writer.writeLine(`Generated: ${generatedAt}`, {
+        fontSize: 10,
+        gap: 14,
+        color: [100, 116, 139]
+      });
+      writer.writeLine(
+        `Filters: ${formatFilterType(state.filters.type)} | From: ${state.filters.from || "Any"} | To: ${state.filters.to || "Any"} | Rows: ${state.filters.limit || defaultFilters.limit}`,
+        {
+          fontSize: 10,
+          gap: 14,
+          color: [100, 116, 139]
+        }
+      );
+
+      writer.writeDivider();
+
+      writer.writeSection("Overview Metrics");
+      [
+        ["Total users", formatCount(metrics.users)],
+        ["New users this month", formatCount(metrics.usersThisMonth)],
+        ["Total CVs", formatCount(metrics.cvs)],
+        ["Paid CVs", formatCount(metrics.paidCVs)],
+        ["Total revenue", formatCurrency(metrics.revenue)],
+        ["Revenue today", formatCurrency(metrics.revenueToday)],
+        ["Revenue this month", formatCurrency(metrics.revenueThisMonth)],
+        ["Average order value", formatCurrency(metrics.averageOrderValue)]
+      ].forEach(([label, value]) => {
+        writer.writeLine(`${label}: ${value}`);
+      });
+
+      writer.writeSection("Analysis Highlights");
+      buildPdfInsights(overview, paymentSummary).forEach(line => {
+        writer.writeLine(`- ${line}`);
+      });
+
+      writer.writeSection("Revenue by Product");
+      if (paymentTypes.length) {
+        paymentTypes.forEach(item => {
+          writer.writeLine(
+            `${item.label || item.type}: ${formatCurrency(item.amount)} from ${formatCount(item.count)} payments`
+          );
+        });
+      } else {
+        writer.writeLine("No product revenue data available.");
+      }
+
+      writer.writeSection("Revenue by Month");
+      if (Array.isArray(trends.revenueByMonth) && trends.revenueByMonth.length) {
+        trends.revenueByMonth.forEach(item => {
+          writer.writeLine(`${formatMonthLabel(item.label)}: ${formatCurrency(item.amount)}`);
+        });
+      } else {
+        writer.writeLine("No monthly revenue data available.");
+      }
+
+      writer.writeSection("Revenue by Day");
+      if (Array.isArray(trends.revenueByDay) && trends.revenueByDay.length) {
+        trends.revenueByDay.forEach(item => {
+          writer.writeLine(`${formatDayLabel(item.label)}: ${formatCurrency(item.amount)}`);
+        });
+      } else {
+        writer.writeLine("No daily revenue data available.");
+      }
+
+      writer.writeSection("User Growth by Month");
+      if (Array.isArray(trends.usersByMonth) && trends.usersByMonth.length) {
+        trends.usersByMonth.forEach(item => {
+          writer.writeLine(`${formatMonthLabel(item.label)}: ${formatCount(item.count)} users`);
+        });
+      } else {
+        writer.writeLine("No user growth data available.");
+      }
+
+      writer.writeSection("Filtered Payment Summary");
+      [
+        ["Filtered revenue", formatCurrency(paymentSummary.revenue)],
+        ["Payments", formatCount(paymentSummary.count)],
+        ["CV sales", formatCount(paymentSummary.cvCount)],
+        ["Cover letter sales", formatCount(paymentSummary.coverLetterCount)],
+        ["Find Me a Job sales", formatCount(paymentSummary.jobFinderCount)]
+      ].forEach(([label, value]) => {
+        writer.writeLine(`${label}: ${value}`);
+      });
+
+      writer.writeSection("Recent Filtered Payments");
+      if (payments.length) {
+        payments.forEach(payment => {
+          writer.writeLine(
+            `${payment.userId?.fullName || "-"} | ${payment.userId?.email || "-"} | ${paymentLabel(payment.type)} | ${formatCurrency(payment.amount)} | ${formatDateTime(payment.createdAt)}`
+          );
+        });
+      } else {
+        writer.writeLine("No payments match the current filters.");
+      }
+
+      doc.save(`cv-for-u-admin-report-${new Date().toISOString().slice(0, 10)}.pdf`);
+    } finally {
+      button.disabled = false;
+      button.textContent = originalText;
+    }
+  }
+
   async function refreshDashboard() {
     await Promise.all([loadOverview(), loadPayments()]);
     updateLastUpdated();
@@ -522,6 +798,15 @@
       } catch (err) {
         console.error("ADMIN EXPORT ERROR:", err);
         alert("Could not export payments right now.");
+      }
+    });
+
+    $("exportPdfBtn")?.addEventListener("click", async () => {
+      try {
+        await exportPdfReport();
+      } catch (err) {
+        console.error("ADMIN PDF EXPORT ERROR:", err);
+        alert("Could not export the PDF report right now.");
       }
     });
 

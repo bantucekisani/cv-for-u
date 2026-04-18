@@ -50,11 +50,15 @@ const JobSearchTargetSchema = new mongoose.Schema({
   matchScore: { type: Number, default: 0 },
   whyFit: { type: String, default: "" },
   keywords: { type: [String], default: [] },
+  googleJobsUrl: { type: String, default: "" },
   indeedUrl: { type: String, default: "" },
   linkedinUrl: { type: String, default: "" },
   pnetUrl: { type: String, default: "" },
   careers24Url: { type: String, default: "" },
-  jobmailUrl: { type: String, default: "" }
+  jobmailUrl: { type: String, default: "" },
+  jobbermanUrl: { type: String, default: "" },
+  myJobMagUrl: { type: String, default: "" },
+  jobzillaUrl: { type: String, default: "" }
 });
 
 const JobSearchSchema = new mongoose.Schema({

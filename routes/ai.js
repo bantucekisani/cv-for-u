@@ -10,6 +10,76 @@ const client = new OpenAI({
 });
 
 const MODEL = "gpt-4o";
+const JOB_MARKETS = [
+  {
+    key: "south-africa",
+    countryLabel: "South Africa",
+    indeedHost: "https://za.indeed.com/jobs",
+    countryKeyword: "South Africa",
+    boardLinks: [
+      { field: "pnetUrl", domain: "pnet.co.za" },
+      { field: "careers24Url", domain: "careers24.com" },
+      { field: "jobmailUrl", domain: "jobmail.co.za" }
+    ],
+    matchers: [
+      "south africa",
+      "johannesburg",
+      "joburg",
+      "pretoria",
+      "cape town",
+      "durban",
+      "gauteng",
+      "sandton",
+      "midrand",
+      "centurion",
+      "western cape",
+      "eastern cape",
+      "kwazulu natal",
+      "kwazulu-natal",
+      "kzn",
+      "free state",
+      "bloemfontein",
+      "gqeberha",
+      "port elizabeth",
+      "polokwane"
+    ]
+  },
+  {
+    key: "nigeria",
+    countryLabel: "Nigeria",
+    indeedHost: "https://ng.indeed.com/jobs",
+    countryKeyword: "Nigeria",
+    boardLinks: [
+      { field: "jobbermanUrl", domain: "jobberman.com" },
+      { field: "myJobMagUrl", domain: "myjobmag.com" },
+      { field: "jobzillaUrl", domain: "jobzilla.ng" }
+    ],
+    matchers: [
+      "nigeria",
+      "lagos",
+      "abuja",
+      "port harcourt",
+      "rivers",
+      "ibadan",
+      "ikeja",
+      "lekki",
+      "victoria island",
+      "yaba",
+      "enugu",
+      "kano",
+      "kaduna",
+      "owerri",
+      "jos",
+      "uyo",
+      "benin city",
+      "akwa ibom",
+      "ogun",
+      "cross river",
+      "fct"
+    ]
+  }
+];
+const DEFAULT_JOB_MARKET = JOB_MARKETS[0];
 
 function safeJsonParse(text) {
   try {
@@ -31,6 +101,46 @@ function cleanText(value, maxLength = 4000) {
     .replace(/\n{3,}/g, "\n\n")
     .trim()
     .slice(0, maxLength);
+}
+
+function normalizeLocationKey(value) {
+  return cleanText(value, 240)
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function resolveJobMarket(location = "") {
+  const normalizedLocation = normalizeLocationKey(location);
+  if (!normalizedLocation) {
+    return DEFAULT_JOB_MARKET;
+  }
+
+  const knownMarket = JOB_MARKETS.find(market =>
+    market.matchers.some(token => normalizedLocation.includes(token))
+  );
+
+  if (knownMarket) {
+    return knownMarket;
+  }
+
+  const locationLabel = cleanText(location, 120);
+  return {
+    key: "global",
+    countryLabel: locationLabel || "Worldwide",
+    indeedHost: "https://www.indeed.com/jobs",
+    countryKeyword: locationLabel || "Worldwide",
+    boardLinks: []
+  };
+}
+
+function emptyBoardLinkFields() {
+  return JOB_MARKETS.flatMap(market => market.boardLinks)
+    .reduce((acc, board) => {
+      acc[board.field] = "";
+      return acc;
+    }, {});
 }
 
 function normalizeStringArray(values, { maxItems = 12, maxLength = 80 } = {}) {
@@ -202,8 +312,8 @@ function buildJobMatchHistoryEntry({
   };
 }
 
-function buildIndeedSearchUrl(query, location) {
-  const url = new URL("https://za.indeed.com/jobs");
+function buildIndeedSearchUrl(query, location, market = DEFAULT_JOB_MARKET) {
+  const url = new URL(market.indeedHost);
   url.searchParams.set("q", cleanText(query, 160));
 
   if (location) {
@@ -213,26 +323,36 @@ function buildIndeedSearchUrl(query, location) {
   return url.toString();
 }
 
-function buildLinkedInSearchUrl(query, location) {
+function buildLinkedInSearchUrl(query, location, market = DEFAULT_JOB_MARKET) {
   const url = new URL("https://www.linkedin.com/jobs/search/");
   url.searchParams.set("keywords", cleanText(query, 160));
-  url.searchParams.set("location", cleanText(location || "South Africa", 120));
+  url.searchParams.set("location", cleanText(location || market.countryLabel, 120));
   return url.toString();
 }
 
-function buildGoogleSiteJobUrl(domain, query, location) {
+function buildGoogleJobsSearchUrl(query, location, market = DEFAULT_JOB_MARKET) {
   const searchTerms = [
-    `site:${domain}`,
     cleanText(query, 160),
-    cleanText(location, 120),
     "jobs",
-    "South Africa"
+    cleanText(location || market.countryLabel, 120)
   ].filter(Boolean).join(" ");
 
   return `https://www.google.com/search?q=${encodeURIComponent(searchTerms)}`;
 }
 
-function normalizeJobFinderPayload(plan = {}) {
+function buildGoogleSiteJobUrl(domain, query, location, market = DEFAULT_JOB_MARKET) {
+  const searchTerms = [
+    `site:${domain}`,
+    cleanText(query, 160),
+    cleanText(location, 120),
+    "jobs",
+    market.countryKeyword
+  ].filter(Boolean).join(" ");
+
+  return `https://www.google.com/search?q=${encodeURIComponent(searchTerms)}`;
+}
+
+function normalizeJobFinderPayload(plan = {}, { defaultLocation = DEFAULT_JOB_MARKET.countryLabel } = {}) {
   const targetRoles = Array.isArray(plan.targetRoles)
     ? plan.targetRoles
       .map(role => ({
@@ -251,7 +371,7 @@ function normalizeJobFinderPayload(plan = {}) {
     : [];
 
   return {
-    locationFocus: cleanText(plan.locationFocus, 120) || "South Africa",
+    locationFocus: cleanText(plan.locationFocus, 120) || defaultLocation,
     profileSummary: cleanText(plan.profileSummary, 400),
     searchTips: normalizeStringArray(plan.searchTips, {
       maxItems: 6,
@@ -261,27 +381,32 @@ function normalizeJobFinderPayload(plan = {}) {
   };
 }
 
-function attachJobBoardLinks(target = {}, { locationFocus = "", includeRemote = false } = {}) {
+function attachJobBoardLinks(target = {}, { locationFocus = "", fallbackLocation = "", includeRemote = false } = {}) {
   const baseQuery = cleanText(target.searchQuery || target.roleTitle, 160);
   const searchQuery = includeRemote && !/\bremote\b/i.test(baseQuery)
     ? `${baseQuery} remote`
     : baseQuery;
-  const location = cleanText(target.location || locationFocus || "South Africa", 120);
+  const market = resolveJobMarket(`${target.location || ""} ${locationFocus || ""} ${fallbackLocation || ""}`);
+  const location = cleanText(target.location || locationFocus || market.countryLabel, 120);
+  const boardLinks = market.boardLinks.reduce((acc, board) => {
+    acc[board.field] = buildGoogleSiteJobUrl(board.domain, searchQuery, location, market);
+    return acc;
+  }, emptyBoardLinkFields());
 
   return {
     ...target,
     searchQuery,
     location,
-    indeedUrl: buildIndeedSearchUrl(searchQuery, location),
-    linkedinUrl: buildLinkedInSearchUrl(searchQuery, location),
-    pnetUrl: buildGoogleSiteJobUrl("pnet.co.za", searchQuery, location),
-    careers24Url: buildGoogleSiteJobUrl("careers24.com", searchQuery, location),
-    jobmailUrl: buildGoogleSiteJobUrl("jobmail.co.za", searchQuery, location)
+    googleJobsUrl: buildGoogleJobsSearchUrl(searchQuery, location, market),
+    indeedUrl: buildIndeedSearchUrl(searchQuery, location, market),
+    linkedinUrl: buildLinkedInSearchUrl(searchQuery, location, market),
+    ...boardLinks
   };
 }
 
-function buildJobSearchHistoryEntry(plan = {}, { preferredLocation = "", includeRemote = false } = {}) {
-  const locationFocus = cleanText(preferredLocation || plan.locationFocus, 120) || "South Africa";
+function buildJobSearchHistoryEntry(plan = {}, { preferredLocation = "", fallbackLocation = "", includeRemote = false } = {}) {
+  const market = resolveJobMarket(`${preferredLocation || ""} ${plan.locationFocus || ""} ${fallbackLocation || ""}`);
+  const locationFocus = cleanText(preferredLocation || plan.locationFocus, 120) || market.countryLabel;
 
   return {
     locationFocus,
@@ -291,7 +416,7 @@ function buildJobSearchHistoryEntry(plan = {}, { preferredLocation = "", include
       maxLength: 140
     }),
     targetRoles: (Array.isArray(plan.targetRoles) ? plan.targetRoles : [])
-      .map(target => attachJobBoardLinks(target, { locationFocus, includeRemote }))
+      .map(target => attachJobBoardLinks(target, { locationFocus, fallbackLocation, includeRemote }))
       .slice(0, 5),
     createdAt: new Date()
   };
@@ -666,9 +791,10 @@ router.post("/job-finder", auth, async (req, res) => {
     }
 
     const normalizedCv = normalizeCvPayload(cv);
+    const jobMarket = resolveJobMarket(`${preferredLocation || ""} ${normalizedCv.location || ""}`);
     const data = await createJsonCompletion({
       systemPrompt:
-        "You are CV for U's job finder assistant. Read a candidate CV and suggest realistic job searches that fit the candidate. Use only facts from the CV. Do not invent qualifications, years, certifications, industries, or tools. Focus on practical job searches suitable for South African job seekers. Return strict JSON only.",
+        "You are CV for U's job finder assistant. Read a candidate CV and suggest realistic job searches that fit the candidate. Use only facts from the CV. Do not invent qualifications, years, certifications, industries, or tools. Focus on practical job searches that match the candidate's country and location. Return strict JSON only.",
       userPrompt: `
 Build a job search plan from this CV.
 
@@ -688,7 +814,8 @@ Instructions:
 - Estimate fit honestly from 0 to 100.
 - Explain briefly why each target role fits this CV.
 - Suggest practical search tips for this candidate.
-- Use plain professional language suitable for South African job seekers.
+- Use plain professional language suitable for people searching in ${jobMarket.countryLabel}.
+- Prefer job-board searches and locations that fit the candidate's country.
 
 Return JSON only:
 {
@@ -709,8 +836,9 @@ Return JSON only:
 `,
       temperature: 0.3
     });
-
-    const plan = normalizeJobFinderPayload(data);
+    const plan = normalizeJobFinderPayload(data, {
+      defaultLocation: jobMarket.countryLabel
+    });
 
     if (!plan.targetRoles.length) {
       const fallbackQuery = cleanText(
@@ -727,7 +855,7 @@ Return JSON only:
         {
           roleTitle: cleanText(normalizedCv.title, 120) || "General job search",
           searchQuery: fallbackQuery,
-          location: preferredLocation || normalizedCv.location || "South Africa",
+          location: preferredLocation || normalizedCv.location || jobMarket.countryLabel,
           matchScore: 50,
           whyFit: "Generated from the saved CV because no target roles were returned.",
           keywords: normalizeStringArray(normalizedCv.skills, {
@@ -740,11 +868,12 @@ Return JSON only:
 
     if (!plan.profileSummary) {
       plan.profileSummary =
-        "Use this saved CV to start a focused job search on the recommended job boards.";
+        `Use this saved CV to start a focused job search on the recommended job boards in ${jobMarket.countryLabel}.`;
     }
 
     const historyEntry = buildJobSearchHistoryEntry(plan, {
       preferredLocation,
+      fallbackLocation: normalizedCv.location,
       includeRemote
     });
 

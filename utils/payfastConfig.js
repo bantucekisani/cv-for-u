@@ -92,22 +92,40 @@ function createSignature(data) {
     .digest("hex");
 }
 
+const CHECKOUT_FIELD_ORDER = [
+  "merchant_id",
+  "merchant_key",
+  "return_url",
+  "cancel_url",
+  "notify_url",
+  "name_first",
+  "name_last",
+  "email_address",
+  "m_payment_id",
+  "amount",
+  "item_name"
+];
+
 function buildPaymentData(data) {
   const { merchantId, merchantKey } = getMerchantCredentials();
-
-  return {
+  const values = {
     merchant_id: merchantId,
     merchant_key: merchantKey,
     return_url: data.returnUrl,
     cancel_url: data.cancelUrl,
     notify_url: data.notifyUrl,
+    name_first: data.firstName,
+    name_last: data.lastName,
+    email_address: data.emailAddress,
     m_payment_id: data.paymentId,
     amount: data.amount,
-    item_name: data.itemName,
-    email_address: data.emailAddress,
-    name_first: data.firstName,
-    name_last: data.lastName
+    item_name: data.itemName
   };
+
+  return CHECKOUT_FIELD_ORDER.reduce((ordered, key) => {
+    ordered[key] = values[key];
+    return ordered;
+  }, {});
 }
 
 function buildRedirectQuery(data) {

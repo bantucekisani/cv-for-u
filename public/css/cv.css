@@ -2026,6 +2026,21 @@ body.pdf-mode .cv-preview {
   color: #6b7280;
 }
 
+.landing-footer-copy {
+  display: grid;
+  gap: 6px;
+}
+
+.ownership-note {
+  color: #475569;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.pay-container .ownership-note {
+  margin: 12px 0 0;
+}
+
 .footer-links {
   display: flex;
   align-items: center;

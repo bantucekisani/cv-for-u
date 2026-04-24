@@ -7,15 +7,25 @@ const {
   getPurchaseConfig,
   matchesAmount
 } = require("../utils/paymentPlans");
+const {
+  assertConfigured,
+  getValidationUrl
+} = require("../utils/payfastConfig");
 
 const router = express.Router();
 
 function parsePayfastPayload(rawBody) {
   return Object.fromEntries(
-    rawBody.split("&").map(pair => {
-      const [key, value] = pair.split("=");
-      return [key, decodeURIComponent(value || "").replace(/\+/g, " ")];
-    })
+    String(rawBody || "")
+      .split("&")
+      .filter(Boolean)
+      .map(pair => {
+        const separatorIndex = pair.indexOf("=");
+        const key = separatorIndex === -1 ? pair : pair.slice(0, separatorIndex);
+        const value = separatorIndex === -1 ? "" : pair.slice(separatorIndex + 1);
+
+        return [key, decodeURIComponent(value.replace(/\+/g, " "))];
+      })
   );
 }
 
@@ -42,25 +52,32 @@ function parsePaymentId(paymentId) {
 ====================================================== */
 router.post("/notify", async (req, res) => {
   try {
-    const rawBody = req.body.toString();
+    assertConfigured();
+
+    const rawBody = Buffer.isBuffer(req.body)
+      ? req.body.toString("utf8")
+      : String(req.body || "");
+
+    if (!rawBody) {
+      return res.status(400).send("Missing payload");
+    }
+
     const data = parsePayfastPayload(rawBody);
 
     if (data.payment_status !== "COMPLETE") {
       return res.status(200).send("Ignored");
     }
 
-    const payfastHost =
-      process.env.PAYFAST_MODE === "live"
-        ? "https://www.payfast.co.za"
-        : "https://sandbox.payfast.co.za";
-
     const verifyRes = await axios.post(
-      `${payfastHost}/eng/query/validate`,
+      getValidationUrl(),
       rawBody,
-      { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
+      {
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        timeout: 15000
+      }
     );
 
-    if (verifyRes.data !== "VALID") {
+    if (String(verifyRes.data || "").trim() !== "VALID") {
       console.error("PAYFAST VALIDATION FAILED");
       return res.status(400).send("Validation failed");
     }
@@ -117,6 +134,11 @@ router.post("/notify", async (req, res) => {
     return res.status(200).send("OK");
   } catch (err) {
     console.error("PAYFAST IPN ERROR:", err);
+
+    if (err.message === "PayFast merchant credentials are not configured") {
+      return res.status(503).send("PayFast not configured");
+    }
+
     return res.status(500).send("Server error");
   }
 });

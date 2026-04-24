@@ -3,10 +3,17 @@ const rateLimit = require("express-rate-limit");
 
 const auth = require("../middleware/auth");
 const CV = require("../models/Cv");
+const User = require("../models/User");
 const {
   getPurchaseConfig,
   formatAmount
 } = require("../utils/paymentPlans");
+const {
+  assertConfigured,
+  buildPaymentData,
+  buildRedirectQuery,
+  getProcessUrl
+} = require("../utils/payfastConfig");
 
 const router = express.Router();
 const createPaymentLimiter = rateLimit({
@@ -20,12 +27,31 @@ const createPaymentLimiter = rateLimit({
   }
 });
 
+function normalizeUrl(value) {
+  return String(value || "").trim().replace(/\/+$/, "");
+}
+
+function splitFullName(value) {
+  const parts = String(value || "").trim().split(/\s+/).filter(Boolean);
+
+  if (!parts.length) {
+    return { firstName: "", lastName: "" };
+  }
+
+  return {
+    firstName: parts[0],
+    lastName: parts.slice(1).join(" ")
+  };
+}
+
 /* ======================================================
    PAYFAST CREATE PAYMENT
    POST /api/payfast/create
 ====================================================== */
 router.post("/create", auth, createPaymentLimiter, async (req, res) => {
   try {
+    assertConfigured();
+
     const { cvId, type, next } = req.body;
     const purchase = getPurchaseConfig(type);
 
@@ -63,39 +89,48 @@ router.post("/create", auth, createPaymentLimiter, async (req, res) => {
     }
 
     const nextStep = next === "job-finder" ? "job-finder" : "";
-    const publicUrl =
+    const publicUrl = normalizeUrl(
       process.env.PUBLIC_URL ||
       process.env.APP_URL ||
-      "https://cv-for-u.onrender.com";
+      "https://cv-for-u.onrender.com"
+    );
+
+    const buyer = await User.findById(req.user.id).select("fullName email");
+    const { firstName, lastName } = splitFullName(buyer?.fullName);
 
     const paymentId = `${purchase.type}-${cvId}-${req.user.id}-${Date.now()}`;
     const returnUrl = `${publicUrl}/payment-success.html?type=${purchase.type}&cv=${cvId}${nextStep ? `&next=${nextStep}` : ""}`;
     const cancelUrl = `${publicUrl}/payment-cancel.html`;
     const notifyUrl = `${publicUrl}/api/payfast/notify`;
 
-    const paymentData = {
-      merchant_id: process.env.PAYFAST_MERCHANT_ID,
-      merchant_key: process.env.PAYFAST_MERCHANT_KEY,
-      return_url: returnUrl,
-      cancel_url: cancelUrl,
-      notify_url: notifyUrl,
-      m_payment_id: paymentId,
+    const paymentData = buildPaymentData({
+      paymentId,
       amount: formatAmount(purchase.amountCents),
-      item_name: purchase.itemName
-    };
+      itemName: purchase.itemName,
+      returnUrl,
+      cancelUrl,
+      notifyUrl,
+      emailAddress: buyer?.email,
+      firstName,
+      lastName
+    });
 
-    const query = new URLSearchParams(paymentData).toString();
-    const payfastUrl =
-      process.env.PAYFAST_MODE === "live"
-        ? "https://www.payfast.co.za/eng/process"
-        : "https://sandbox.payfast.co.za/eng/process";
+    const query = buildRedirectQuery(paymentData);
 
     res.json({
       success: true,
-      redirectUrl: `${payfastUrl}?${query}`
+      redirectUrl: `${getProcessUrl()}?${query}`
     });
   } catch (err) {
     console.error("PAYFAST CREATE ERROR:", err);
+
+    if (err.message === "PayFast merchant credentials are not configured") {
+      return res.status(503).json({
+        success: false,
+        message: "Payment gateway is not configured yet"
+      });
+    }
+
     res.status(500).json({
       success: false,
       message: "Payment creation failed"

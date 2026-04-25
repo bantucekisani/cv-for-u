@@ -3215,4 +3215,20 @@ body.landing-body .job-discovery-card {
   .landing-body .topbar-right .primary-btn.small {
     width: 100%;
   }
+
+  .landing-body .trust-row {
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .landing-body .trust-label {
+    display: block;
+    flex-basis: 100%;
+    margin-bottom: -2px;
+  }
+
+  .landing-body .trust-pill {
+    flex: 0 0 auto;
+    max-width: 100%;
+  }
 }

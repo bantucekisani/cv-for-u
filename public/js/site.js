@@ -30,6 +30,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const menuBtn = document.getElementById("menuBtn");
   const mobileMenu = document.getElementById("mobileMenu");
+  const topbar = menuBtn?.closest(".topbar");
 
   if (!menuBtn || !mobileMenu) {
     return;
@@ -37,8 +38,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const syncMenuState = (isOpen) => {
     mobileMenu.classList.toggle("show", isOpen);
+    document.body.classList.toggle("menu-open", isOpen);
     menuBtn.textContent = isOpen ? "Close" : "Menu";
     menuBtn.setAttribute("aria-expanded", String(isOpen));
+    mobileMenu.setAttribute("aria-hidden", String(!isOpen));
   };
 
   syncMenuState(mobileMenu.classList.contains("show"));
@@ -53,6 +56,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
+      syncMenuState(false);
+    }
+  });
+
+  document.addEventListener("click", (event) => {
+    if (!mobileMenu.classList.contains("show") || window.innerWidth > 768) {
+      return;
+    }
+
+    if (topbar && !topbar.contains(event.target)) {
       syncMenuState(false);
     }
   });

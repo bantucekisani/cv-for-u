@@ -3148,3 +3148,71 @@ body.landing-body .job-discovery-card {
     grid-template-columns: 1fr;
   }
 }
+
+/* ================= PREMIUM MOBILE MENU FINAL OVERRIDE ================= */
+@media (max-width: 768px) {
+  .landing-body.menu-open {
+    overflow: hidden;
+  }
+
+  .landing-body .topbar {
+    overflow: visible;
+  }
+
+  .landing-body .mobile-menu-btn {
+    position: relative;
+    z-index: 1202;
+    min-width: 122px;
+  }
+
+  .landing-body .topbar-right {
+    display: none !important;
+    position: fixed !important;
+    top: 104px !important;
+    left: 12px !important;
+    right: 12px !important;
+    width: auto !important;
+    margin: 0 !important;
+    padding: 14px !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+    background: rgba(255, 255, 255, 0.98) !important;
+    border: 1px solid rgba(219, 234, 254, 0.95) !important;
+    border-radius: 24px !important;
+    box-shadow:
+      0 24px 48px rgba(15, 23, 42, 0.16),
+      0 0 0 100vmax rgba(15, 23, 42, 0.26) !important;
+    max-height: calc(100vh - 128px) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    z-index: 1201 !important;
+    -webkit-backdrop-filter: blur(18px);
+    backdrop-filter: blur(18px);
+  }
+
+  .landing-body .topbar-right.show {
+    display: flex !important;
+  }
+
+  .landing-body .topbar-right a {
+    display: flex !important;
+    width: 100% !important;
+    min-height: 54px;
+    padding: 0 18px !important;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    border-radius: 18px;
+  }
+
+  .landing-body .topbar-right .top-link {
+    background: rgba(234, 243, 255, 0.72);
+  }
+
+  .landing-body .topbar-right .primary-btn.small {
+    width: 100%;
+  }
+}

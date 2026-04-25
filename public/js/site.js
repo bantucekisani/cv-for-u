@@ -21,10 +21,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  document.querySelectorAll(".landing-footer p").forEach((node) => {
-    node.textContent = "Copyright 2026 CV for U - Made in South Africa";
-  });
-
   document.querySelectorAll(".topbar-right a[href]").forEach((link) => {
     const href = link.getAttribute("href");
     if (href && href !== "#" && href === currentPage) {

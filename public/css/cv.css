@@ -2336,3 +2336,815 @@ body.pdf-mode .cv-preview .cv-item {
   break-inside: avoid;
   page-break-inside: avoid;
 }
+
+/* =========================================================
+   PREMIUM PUBLIC UI OVERRIDES
+========================================================= */
+:root {
+  --site-ink: #0f172a;
+  --site-copy: #334155;
+  --site-muted: #52607a;
+  --site-line: rgba(148, 163, 184, 0.28);
+  --site-panel: rgba(255, 255, 255, 0.82);
+  --site-panel-strong: rgba(255, 255, 255, 0.94);
+  --site-blue: #144f9b;
+  --site-blue-bright: #2563eb;
+  --site-cyan: #0891b2;
+  --site-glow: 0 24px 70px rgba(15, 23, 42, 0.1);
+  --site-glow-strong: 0 32px 90px rgba(15, 23, 42, 0.16);
+  --heading-font: "Trebuchet MS", "Segoe UI", sans-serif;
+  --body-font: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+}
+
+body,
+button,
+input,
+textarea,
+select {
+  font-family: var(--body-font);
+}
+
+.landing-body {
+  position: relative;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(14, 165, 233, 0.2), transparent 34%),
+    radial-gradient(circle at top right, rgba(20, 79, 155, 0.12), transparent 26%),
+    linear-gradient(180deg, #f7fbff 0%, #eef5ff 44%, #f9fbfe 100%);
+  color: var(--site-ink);
+}
+
+.landing-body::before,
+.landing-body::after {
+  content: "";
+  position: fixed;
+  width: 340px;
+  height: 340px;
+  border-radius: 999px;
+  filter: blur(80px);
+  opacity: 0.28;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.landing-body::before {
+  top: 96px;
+  right: -80px;
+  background: rgba(37, 99, 235, 0.28);
+}
+
+.landing-body::after {
+  bottom: 40px;
+  left: -110px;
+  background: rgba(8, 145, 178, 0.22);
+}
+
+.landing-body > * {
+  position: relative;
+  z-index: 1;
+}
+
+.landing-body .topbar {
+  position: sticky;
+  top: 14px;
+  width: min(1180px, calc(100% - 32px));
+  margin: 16px auto 0;
+  padding: 16px 22px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(219, 234, 254, 0.9);
+  box-shadow: 0 22px 48px rgba(15, 23, 42, 0.08);
+  backdrop-filter: blur(18px);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.topbar .logo {
+  width: clamp(100px, 18vw, 124px);
+  height: auto;
+}
+
+.topbar .top-link,
+.topbar .primary-btn.small,
+.secondary-link-btn,
+.payment-pill,
+.pricing-assurance-item,
+.page-eyebrow,
+.pay-badge {
+  text-decoration: none;
+}
+
+.topbar .top-link {
+  min-height: 42px;
+  padding: 0 16px;
+  border-radius: 999px;
+  color: var(--site-copy);
+  font-weight: 600;
+  transition: background 0.24s ease, color 0.24s ease, transform 0.24s ease;
+}
+
+.topbar .top-link:hover,
+.topbar .top-link.is-current {
+  background: #eaf3ff;
+  color: var(--site-blue);
+  transform: translateY(-1px);
+}
+
+.topbar .primary-btn.small,
+.primary-btn,
+.secondary-btn,
+.secondary-link-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 18px;
+  border-radius: 16px;
+  border: 1px solid transparent;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  transition:
+    transform 0.22s ease,
+    box-shadow 0.22s ease,
+    background 0.22s ease,
+    border-color 0.22s ease,
+    color 0.22s ease;
+}
+
+.primary-btn,
+.topbar .primary-btn.small {
+  background: linear-gradient(135deg, #144f9b 0%, #2563eb 60%, #38bdf8 100%);
+  color: #ffffff;
+  box-shadow: 0 16px 32px rgba(37, 99, 235, 0.22);
+}
+
+.primary-btn:hover,
+.topbar .primary-btn.small:hover,
+.secondary-btn:hover,
+.secondary-link-btn:hover {
+  transform: translateY(-2px);
+}
+
+.secondary-btn,
+.secondary-link-btn {
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--site-ink);
+  border-color: rgba(148, 163, 184, 0.3);
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.06);
+}
+
+.page-eyebrow,
+.pay-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(191, 219, 254, 0.95);
+  color: var(--site-blue);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.landing-body .hero {
+  width: min(1180px, calc(100% - 32px));
+  margin: 34px auto 0;
+  padding: 36px;
+  gap: 28px;
+  align-items: stretch;
+  border-radius: 32px;
+  border: 1px solid rgba(219, 234, 254, 0.95);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(246, 250, 255, 0.82)),
+    radial-gradient(circle at top right, rgba(37, 99, 235, 0.08), transparent 35%);
+  box-shadow: var(--site-glow);
+  backdrop-filter: blur(14px);
+  overflow: hidden;
+}
+
+.landing-body .hero::after {
+  content: "";
+  position: absolute;
+  right: -90px;
+  top: -100px;
+  width: 260px;
+  height: 260px;
+  border-radius: 999px;
+  background: rgba(8, 145, 178, 0.14);
+  filter: blur(8px);
+}
+
+.landing-body .hero-text h1,
+.pricing-title,
+.examples-title,
+.testimonials-title,
+.hiw-title,
+.job-discovery-copy h2,
+.pricing-card h2,
+.pay-container h1,
+.pay-summary-card h2 {
+  font-family: var(--heading-font);
+  letter-spacing: -0.03em;
+  color: var(--site-ink);
+}
+
+.landing-body .hero-text h1 {
+  margin: 10px 0 16px;
+  font-size: clamp(2.7rem, 5vw, 4.5rem);
+  line-height: 0.98;
+  max-width: 10.5ch;
+}
+
+.landing-body .hero-kicker {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(191, 219, 254, 0.96);
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--site-blue);
+  font-weight: 700;
+}
+
+.landing-body .hero-sub,
+.landing-body .hero-small,
+.job-discovery-copy p,
+.feature p,
+.testimonial-card p,
+.hiw-step p,
+.pricing-sub,
+.price-note,
+.pay-summary-card p,
+.pay-container p,
+.examples-note,
+.examples-sub {
+  color: var(--site-muted);
+  line-height: 1.7;
+}
+
+.landing-body .hero-actions {
+  margin-top: 22px;
+  flex-wrap: wrap;
+}
+
+.landing-body .ai-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 18px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(20, 79, 155, 0.08);
+  color: var(--site-blue);
+  font-weight: 700;
+}
+
+.landing-body .hero-proof-item,
+.landing-body .trust-pill,
+.job-discovery-link,
+.payment-pill,
+.pricing-assurance-item {
+  border-radius: 999px;
+  border: 1px solid rgba(191, 219, 254, 0.95);
+  background: rgba(255, 255, 255, 0.84);
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.05);
+}
+
+.landing-body .hero-proof-item,
+.job-discovery-link {
+  color: var(--site-blue);
+}
+
+.landing-body .trust-row {
+  margin-top: 18px;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.landing-body .trust-label {
+  display: inline-flex;
+  align-items: center;
+  color: var(--site-copy);
+  font-weight: 700;
+}
+
+.landing-body .trust-pill {
+  padding: 8px 14px;
+  color: var(--site-ink);
+}
+
+.hero-stats,
+.hero-preview-metrics,
+.pricing-note-strip,
+.pricing-assurance,
+.pay-summary-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.hero-stats {
+  margin-top: 22px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.hero-stat-card,
+.hero-preview-metric,
+.pricing-note-card,
+.pricing-assurance-item,
+.pay-summary-item {
+  padding: 16px 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(219, 234, 254, 0.95);
+  background: rgba(255, 255, 255, 0.76);
+}
+
+.hero-stat-card strong,
+.hero-preview-metric strong,
+.pricing-note-card strong,
+.pay-summary-item strong {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--site-ink);
+  font-size: 1rem;
+}
+
+.hero-stat-card span,
+.hero-preview-metric span,
+.pricing-note-card span,
+.pay-summary-item span {
+  display: block;
+  color: var(--site-muted);
+  line-height: 1.6;
+  font-size: 0.92rem;
+}
+
+.landing-body .hero-preview-card {
+  position: relative;
+  padding: 24px;
+  border-radius: 30px;
+  border: 1px solid rgba(191, 219, 254, 0.9);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(241, 247, 255, 0.88));
+  box-shadow: var(--site-glow-strong);
+}
+
+.landing-body .hero-preview-card h3 {
+  margin: 0 0 14px;
+  color: var(--site-ink);
+}
+
+.landing-body .mini-cv {
+  padding: 18px;
+  border-radius: 24px;
+  background: linear-gradient(135deg, #ffffff, #eff6ff);
+  border: 1px solid rgba(219, 234, 254, 0.95);
+}
+
+.landing-body .mini-caption {
+  margin: 16px 0 0;
+  color: var(--site-copy);
+  font-weight: 600;
+}
+
+.hero-preview-metrics {
+  margin-top: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.hero-preview-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--site-blue);
+}
+
+.landing-body .cv-examples,
+.landing-body .testimonials,
+.landing-body .how-it-works {
+  width: min(1180px, calc(100% - 32px));
+  margin: 74px auto 0;
+  padding: 0;
+  background: transparent;
+}
+
+.landing-body .examples-title,
+.landing-body .testimonials-title,
+.landing-body .hiw-title {
+  margin-bottom: 12px;
+  font-size: clamp(2rem, 3vw, 3rem);
+}
+
+.landing-body .examples-sub {
+  max-width: 620px;
+  margin: 0 auto 34px;
+}
+
+.landing-body .cv-examples-grid,
+body.landing-body .features,
+body.landing-body .testimonials-grid,
+body.landing-body .hiw-steps {
+  gap: 20px;
+}
+
+.landing-body .cv-paper,
+body.landing-body .feature,
+body.landing-body .testimonial-card,
+body.landing-body .hiw-step {
+  padding: 24px;
+  border-radius: 24px;
+  border: 1px solid rgba(219, 234, 254, 0.96);
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.06);
+}
+
+body.landing-body .features {
+  width: min(1180px, calc(100% - 32px));
+  margin: 32px auto 0;
+  padding: 0;
+}
+
+body.landing-body .job-discovery {
+  width: min(1180px, calc(100% - 32px));
+  margin: 74px auto 0;
+  padding: 0;
+}
+
+body.landing-body .job-discovery-shell {
+  grid-template-columns: 1.15fr 0.95fr;
+  padding: 30px;
+  border-radius: 30px;
+  border: 1px solid rgba(191, 219, 254, 0.95);
+  background:
+    linear-gradient(135deg, rgba(18, 124, 175, 0.1), rgba(255, 255, 255, 0.95) 48%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(246, 250, 255, 0.86));
+  box-shadow: var(--site-glow);
+}
+
+body.landing-body .job-discovery-panel {
+  padding: 22px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(219, 234, 254, 0.95);
+}
+
+body.landing-body .job-discovery-card {
+  padding: 16px;
+  border-radius: 18px;
+  background: rgba(248, 251, 255, 0.92);
+}
+
+.pricing-page .pricing {
+  width: min(1180px, calc(100% - 32px));
+  margin: 36px auto 76px;
+  padding: 0;
+  text-align: left;
+}
+
+.pricing-hero {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 22px;
+  padding: 30px;
+  border-radius: 30px;
+  background:
+    linear-gradient(135deg, rgba(20, 79, 155, 0.08), rgba(255, 255, 255, 0.92) 50%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(243, 248, 255, 0.88));
+  border: 1px solid rgba(219, 234, 254, 0.96);
+  box-shadow: var(--site-glow);
+}
+
+.pricing-title {
+  margin: 14px 0 12px;
+  font-size: clamp(2.4rem, 4vw, 4rem);
+  line-height: 1.02;
+}
+
+.pricing-hero-aside {
+  padding: 22px;
+  border-radius: 24px;
+  background: #0f172a;
+  color: #e2e8f0;
+  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.16);
+}
+
+.pricing-aside-label {
+  margin: 0 0 14px;
+  color: #93c5fd;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.pricing-aside-list,
+.pay-inclusions {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pricing-aside-list li,
+.pay-inclusions li {
+  position: relative;
+  padding-left: 18px;
+  line-height: 1.7;
+}
+
+.pricing-aside-list li + li,
+.pay-inclusions li + li {
+  margin-top: 10px;
+}
+
+.pricing-aside-list li::before,
+.pay-inclusions li::before,
+.pricing-card li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 10px;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--site-blue-bright);
+  box-shadow: 0 0 0 5px rgba(37, 99, 235, 0.12);
+}
+
+.pricing-note-strip {
+  margin: 22px 0 28px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.pricing-grid {
+  align-items: stretch;
+}
+
+.pricing-card {
+  padding: 30px 26px;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(219, 234, 254, 0.96);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.07);
+  text-align: left;
+}
+
+.pricing-plan-eyebrow {
+  margin: 0 0 12px;
+  color: var(--site-blue);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.pricing-card h2 {
+  margin: 0 0 10px;
+  font-size: 1.7rem;
+}
+
+.pricing-card .price {
+  margin: 0 0 10px;
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--site-ink);
+}
+
+.price-note {
+  margin: 0 0 18px;
+}
+
+.pricing-card ul {
+  display: grid;
+  gap: 12px;
+  margin: 0 0 22px;
+}
+
+.pricing-card li {
+  position: relative;
+  padding-left: 18px;
+  color: var(--site-copy);
+  line-height: 1.65;
+}
+
+.pricing-card .primary-btn {
+  width: 100%;
+  margin-right: 0;
+}
+
+.pricing-card.popular {
+  transform: translateY(-6px);
+  border-color: rgba(147, 197, 253, 0.98);
+  background:
+    linear-gradient(180deg, rgba(239, 246, 255, 0.98), rgba(255, 255, 255, 0.92));
+  box-shadow: 0 24px 56px rgba(37, 99, 235, 0.12);
+}
+
+.pricing-card.popular .tag {
+  padding: 8px 14px;
+  top: -16px;
+  box-shadow: 0 14px 28px rgba(37, 99, 235, 0.22);
+}
+
+.pricing-assurance {
+  margin-top: 24px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.pricing-assurance-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 62px;
+  color: var(--site-copy);
+  font-weight: 600;
+  text-align: center;
+}
+
+.pay-body {
+  display: block;
+}
+
+.pay-shell {
+  width: min(1100px, calc(100% - 32px));
+  margin: 48px auto 56px;
+  display: grid;
+  grid-template-columns: 0.92fr 0.78fr;
+  gap: 24px;
+  align-items: stretch;
+}
+
+.pay-summary-card,
+.pay-container {
+  border-radius: 30px;
+  border: 1px solid rgba(219, 234, 254, 0.96);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(246, 250, 255, 0.88));
+  box-shadow: var(--site-glow);
+}
+
+.pay-summary-card {
+  padding: 30px;
+}
+
+.pay-summary-card h2 {
+  margin: 14px 0 12px;
+  font-size: clamp(2rem, 3vw, 3rem);
+  line-height: 1.04;
+}
+
+.pay-summary-grid {
+  margin: 20px 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.pay-container {
+  max-width: none;
+  margin: 0;
+  padding: 30px;
+  text-align: left;
+}
+
+.pay-badge {
+  margin-bottom: 12px;
+}
+
+.pay-container h1 {
+  margin: 0 0 12px;
+  font-size: clamp(2rem, 3vw, 2.8rem);
+  line-height: 1.04;
+}
+
+.pay-container h2 {
+  margin: 18px 0 12px;
+  font-size: 3rem;
+  line-height: 0.95;
+  color: var(--site-blue);
+  font-family: var(--heading-font);
+}
+
+.payment-pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 16px 0 24px;
+}
+
+.payment-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 14px;
+  color: var(--site-copy);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.pay-container .primary-btn,
+.pay-container .secondary-btn {
+  width: 100%;
+  margin-right: 0;
+}
+
+.pay-container .secondary-btn {
+  margin-top: 12px;
+}
+
+.pay-error {
+  min-height: 20px;
+  margin: 12px 0 0;
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+.secure {
+  margin: 18px 0 0;
+  color: var(--site-copy);
+  font-weight: 600;
+}
+
+.landing-footer {
+  padding-bottom: 26px;
+}
+
+@media (max-width: 960px) {
+  .landing-body .hero,
+  .pricing-hero,
+  .pay-shell,
+  body.landing-body .job-discovery-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-stats,
+  .pricing-note-strip,
+  .pricing-assurance,
+  .pay-summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .landing-body .topbar,
+  .landing-body .hero,
+  .pricing-page .pricing,
+  body.landing-body .features,
+  body.landing-body .cv-examples,
+  body.landing-body .testimonials,
+  body.landing-body .how-it-works,
+  body.landing-body .job-discovery,
+  .pay-shell {
+    width: min(100%, calc(100% - 24px));
+  }
+
+  .landing-body .topbar {
+    padding: 14px 16px;
+    border-radius: 20px;
+  }
+
+  .landing-body .hero,
+  .pricing-hero,
+  .pay-summary-card,
+  .pay-container {
+    padding: 22px 18px;
+    border-radius: 24px;
+  }
+
+  .landing-body .hero-text h1,
+  .pricing-title,
+  .pay-summary-card h2,
+  .pay-container h1 {
+    max-width: none;
+    font-size: clamp(2.2rem, 9vw, 3rem);
+  }
+
+  .landing-body .hero-preview-card,
+  .hero-stat-card,
+  .hero-preview-metric,
+  .pricing-note-card,
+  .pricing-card,
+  .pricing-assurance-item,
+  .pay-summary-item {
+    border-radius: 20px;
+  }
+
+  .landing-body .topbar-right {
+    background: rgba(255, 255, 255, 0.96);
+    border: 1px solid rgba(219, 234, 254, 0.95);
+    border-radius: 20px;
+    box-shadow: 0 20px 40px rgba(15, 23, 42, 0.1);
+    padding: 12px;
+  }
+
+  .landing-body .topbar-right a {
+    width: 100%;
+  }
+
+  .hero-preview-metrics {
+    grid-template-columns: 1fr;
+  }
+}

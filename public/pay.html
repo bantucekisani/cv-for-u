@@ -20,22 +20,60 @@
   </style>
 </head>
 
-<body>
-  <div class="pay-container">
-    <h1 id="payTitle">Unlock your CV downloads</h1>
+<body class="landing-body pay-body">
+  <div class="pay-shell">
+    <section class="pay-summary-card">
+      <span class="page-eyebrow">Secure checkout</span>
+      <h2>One clean payment. No subscription pressure.</h2>
+      <p>
+        Your unlock is linked to the saved CV you are working on, so you can pay once,
+        finish the download, and get back to applying.
+      </p>
 
-    <p id="payDescription">
-      Pay once to unlock 4 CV PDF downloads, 1 AI cover letter, and 4 Find Me a Job searches for this CV.
-    </p>
+      <div class="pay-summary-grid">
+        <article class="pay-summary-item">
+          <span>Model</span>
+          <strong>Once-off payment</strong>
+        </article>
+        <article class="pay-summary-item">
+          <span>Currency</span>
+          <strong>South African rand</strong>
+        </article>
+        <article class="pay-summary-item">
+          <span>Merchant</span>
+          <strong>Holovision Technologies</strong>
+        </article>
+      </div>
 
-    <h2 id="payAmount">R40.00</h2>
+      <ul class="pay-inclusions">
+        <li>Secure payment redirect handled by PayFast</li>
+        <li>Your unlock stays tied to the selected CV flow</li>
+        <li>Support remains available if payment does not complete</li>
+      </ul>
+    </section>
 
-    <button id="payBtn" class="primary-btn">Pay with PayFast</button>
-    <button id="cancelPayBtn" class="secondary-btn">Cancel</button>
+    <section class="pay-container">
+      <p class="pay-badge">Selected product</p>
+      <h1 id="payTitle">Unlock your CV downloads</h1>
 
-    <p id="payError" style="color:red; margin-top:12px;"></p>
-    <p class="secure">Secure payment via PayFast</p>
-    <p class="ownership-note">CV for U is a product of Holovision Technologies (Pty) Ltd.</p>
+      <p id="payDescription">
+        Pay once to unlock 4 CV PDF downloads, 1 AI cover letter, and 4 Find Me a Job searches for this CV.
+      </p>
+
+      <h2 id="payAmount">R40.00</h2>
+
+      <div class="payment-pill-row">
+        <span class="payment-pill">Secure PayFast checkout</span>
+        <span class="payment-pill">No subscription</span>
+      </div>
+
+      <button id="payBtn" class="primary-btn">Pay with PayFast</button>
+      <button id="cancelPayBtn" class="secondary-btn">Cancel</button>
+
+      <p id="payError" class="pay-error"></p>
+      <p class="secure">Payments are processed on PayFast and then returned to CV for U.</p>
+      <p class="ownership-note">CV for U is a product of Holovision Technologies (Pty) Ltd.</p>
+    </section>
   </div>
 
   <script>

@@ -6,7 +6,10 @@ const ALLOWED_TEMPLATES = new Set([
   "templateE",
   "templateF",
   "templateG",
-  "templateH"
+  "templateH",
+  "templateI",
+  "templateJ",
+  "templateK"
 ]);
 
 const ALLOWED_COLORS = new Set([

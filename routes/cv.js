@@ -2,6 +2,21 @@ const express = require("express");
 const router = express.Router();
 const auth = require("../middleware/auth");
 const CV = require("../models/Cv");
+const { blankPdfCacheEntry } = require("../utils/pdfStore");
+
+function resetPdfCache(cv, { resetCv = false, resetCoverLetter = false } = {}) {
+  if (!cv.pdfCache) {
+    cv.pdfCache = {};
+  }
+
+  if (resetCv) {
+    cv.pdfCache.cv = blankPdfCacheEntry();
+  }
+
+  if (resetCoverLetter) {
+    cv.pdfCache.coverLetter = blankPdfCacheEntry();
+  }
+}
 
 /* ======================================================
    SAVE CV (CREATE or UPDATE)
@@ -20,6 +35,7 @@ router.post("/save", auth, async (req, res) => {
     delete body.lastPaymentId;
     delete body.jobMatches;
     delete body.jobSearches;
+    delete body.pdfCache;
 
     let cv;
 
@@ -64,10 +80,15 @@ router.post("/save", auth, async (req, res) => {
     cv.location = String(body.location || "").trim();
     cv.summary = String(body.summary || "").trim();
 
+    const incomingCoverLetter = typeof body.coverLetter === "string"
+      ? body.coverLetter.trim()
+      : null;
+    const hadCoverLetter = String(cv.coverLetter || "");
+
     /* ===== COVER LETTER ===== */
-   if (typeof body.coverLetter === "string" && body.coverLetter.trim()) {
-  cv.coverLetter = body.coverLetter.trim();
-}
+    if (incomingCoverLetter !== null && incomingCoverLetter) {
+      cv.coverLetter = incomingCoverLetter;
+    }
 
 
     /* ===== ARRAYS ===== */
@@ -83,6 +104,11 @@ router.post("/save", auth, async (req, res) => {
 
     /* ===== PHOTO ===== */
     cv.photo = body.photo || cv.photo || null;
+
+    resetPdfCache(cv, {
+      resetCv: true,
+      resetCoverLetter: incomingCoverLetter !== null && incomingCoverLetter !== hadCoverLetter
+    });
 
     await cv.save();
 
@@ -139,6 +165,10 @@ router.post("/duplicate/:id", auth, async (req, res) => {
     copy.lastPaymentId = null;
     copy.jobMatches = [];
     copy.jobSearches = [];
+    copy.pdfCache = {
+      cv: blankPdfCacheEntry(),
+      coverLetter: blankPdfCacheEntry()
+    };
 
     const newCv = await CV.create(copy);
     res.json({ success: true, cv: newCv });
@@ -185,11 +215,10 @@ router.post("/:id/cover-letter", auth, async (req, res) => {
       });
     }
 
-    const cv = await CV.findOneAndUpdate(
-      { _id: req.params.id, userId: req.user.id },
-      { coverLetter: coverLetter.trim() },
-      { new: true }
-    );
+    const cv = await CV.findOne({
+      _id: req.params.id,
+      userId: req.user.id
+    });
 
     if (!cv) {
       return res.status(404).json({
@@ -197,6 +226,10 @@ router.post("/:id/cover-letter", auth, async (req, res) => {
         message: "CV not found"
       });
     }
+
+    cv.coverLetter = coverLetter.trim();
+    resetPdfCache(cv, { resetCoverLetter: true });
+    await cv.save();
 
     res.json({ success: true });
 

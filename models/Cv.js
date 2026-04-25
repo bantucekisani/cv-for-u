@@ -69,6 +69,34 @@ const JobSearchSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
+const PdfAssetSchema = new mongoose.Schema(
+  {
+    status: {
+      type: String,
+      enum: ["idle", "queued", "ready", "error"],
+      default: "idle"
+    },
+    key: { type: String, default: "" },
+    fingerprint: { type: String, default: "" },
+    generatedAt: { type: Date, default: null },
+    sizeBytes: { type: Number, default: 0 },
+    error: { type: String, default: "" }
+  },
+  {
+    _id: false
+  }
+);
+
+const PdfCacheSchema = new mongoose.Schema(
+  {
+    cv: { type: PdfAssetSchema, default: () => ({}) },
+    coverLetter: { type: PdfAssetSchema, default: () => ({}) }
+  },
+  {
+    _id: false
+  }
+);
+
 /* ================= CV ================= */
 const CVSchema = new mongoose.Schema(
   {
@@ -127,7 +155,10 @@ lastPaymentId: { type: String, default: null },
 jobMatches: { type: [JobMatchSchema], default: [] },
 
 /* ===== JOB FINDER HISTORY ===== */
-jobSearches: { type: [JobSearchSchema], default: [] }
+jobSearches: { type: [JobSearchSchema], default: [] },
+
+/* ===== GENERATED PDF CACHE ===== */
+pdfCache: { type: PdfCacheSchema, default: () => ({}) }
 
   },
   {

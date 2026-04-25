@@ -10,6 +10,14 @@ const CV = require("../models/Cv");
 const auth = require("../middleware/auth");
 const authViaQuery = require("../middleware/authViaQuery");
 const renderCvHTML = require("../utils/renderTemplate");
+const {
+  blankPdfCacheEntry,
+  buildPdfAssetKey,
+  hashPayload,
+  isPdfCacheFresh,
+  readPdfAsset,
+  writePdfAsset
+} = require("../utils/pdfStore");
 
 /* ======================================================
    LOAD SAME CSS AS PREVIEW
@@ -45,19 +53,86 @@ try {
   console.warn("Cover letter CSS not found");
 }
 
+const cvCssHash = hashPayload({ css: cvCss });
+const coverCssHash = hashPayload({ css: coverCss });
+const inflightPdfBuilds = new Map();
+const maxRenderConcurrency = Math.max(
+  1,
+  Number.parseInt(process.env.PDF_RENDER_CONCURRENCY || "2", 10) || 2
+);
+
+let browserPromise = null;
+let activeRenders = 0;
+const renderWaiters = [];
+
 /* ======================================================
    PDF RENDERER
 ====================================================== */
-async function renderPdf(html, css) {
-  const browser = await puppeteer.launch({
-    args: chromium.args,
-    executablePath: await chromium.executablePath(),
-    headless: chromium.headless
+async function getBrowser() {
+  if (!browserPromise) {
+    browserPromise = puppeteer.launch({
+      args: chromium.args,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless
+    }).catch(err => {
+      browserPromise = null;
+      throw err;
+    });
+  }
+
+  return browserPromise;
+}
+
+async function resetBrowser() {
+  if (!browserPromise) {
+    return;
+  }
+
+  const currentBrowser = await browserPromise.catch(() => null);
+  browserPromise = null;
+
+  if (currentBrowser) {
+    await currentBrowser.close().catch(() => {});
+  }
+}
+
+function acquireRenderSlot() {
+  if (activeRenders < maxRenderConcurrency) {
+    activeRenders += 1;
+    return Promise.resolve();
+  }
+
+  return new Promise(resolve => {
+    renderWaiters.push(resolve);
   });
+}
+
+function releaseRenderSlot() {
+  activeRenders = Math.max(0, activeRenders - 1);
+
+  const next = renderWaiters.shift();
+
+  if (next) {
+    activeRenders += 1;
+    next();
+  }
+}
+
+async function withRenderSlot(task) {
+  await acquireRenderSlot();
 
   try {
-    const page = await browser.newPage();
+    return await task();
+  } finally {
+    releaseRenderSlot();
+  }
+}
 
+async function renderPdf(html, css) {
+  const browser = await getBrowser();
+  const page = await browser.newPage();
+
+  try {
     await page.setViewport({
       width: 1200,
       height: 1697,
@@ -88,8 +163,11 @@ async function renderPdf(html, css) {
       printBackground: true,
       margin: { top: 0, right: 0, bottom: 0, left: 0 }
     });
+  } catch (err) {
+    await resetBrowser();
+    throw err;
   } finally {
-    await browser.close();
+    await page.close().catch(() => {});
   }
 }
 
@@ -124,6 +202,155 @@ async function getOwnedCv(req) {
   });
 }
 
+function buildCvFingerprint(cv) {
+  return hashPayload({
+    kind: "cv",
+    cssHash: cvCssHash,
+    template: cv.template || "",
+    color: cv.color || "",
+    photo: cv.photo || "",
+    name: cv.name || "",
+    title: cv.title || "",
+    email: cv.email || "",
+    phone: cv.phone || "",
+    location: cv.location || "",
+    summary: cv.summary || "",
+    skills: Array.isArray(cv.skills) ? cv.skills : [],
+    experience: Array.isArray(cv.experience) ? cv.experience : [],
+    education: Array.isArray(cv.education) ? cv.education : [],
+    references: Array.isArray(cv.references) ? cv.references : [],
+    referencesOnRequest: cv.referencesOnRequest === true
+  });
+}
+
+function buildCoverLetterFingerprint(cv) {
+  return hashPayload({
+    kind: "cover-letter",
+    cssHash: coverCssHash,
+    coverLetter: cv.coverLetter || ""
+  });
+}
+
+function getPdfCacheEntry(cv, kind) {
+  return cv?.pdfCache?.[kind] || blankPdfCacheEntry();
+}
+
+function buildPdfCacheEntry(assetKey, fingerprint, pdfBuffer) {
+  return {
+    status: "ready",
+    key: assetKey,
+    fingerprint,
+    generatedAt: new Date(),
+    sizeBytes: Buffer.byteLength(pdfBuffer),
+    error: ""
+  };
+}
+
+async function setPdfCacheState(cvId, kind, state) {
+  await CV.updateOne(
+    { _id: cvId },
+    { $set: { [`pdfCache.${kind}`]: state } }
+  );
+}
+
+async function setPdfCacheQueued(cvId, kind, assetKey, fingerprint) {
+  await setPdfCacheState(cvId, kind, {
+    ...blankPdfCacheEntry(),
+    status: "queued",
+    key: assetKey,
+    fingerprint
+  });
+}
+
+async function setPdfCacheError(cvId, kind, assetKey, fingerprint, err) {
+  await setPdfCacheState(cvId, kind, {
+    ...blankPdfCacheEntry(),
+    status: "error",
+    key: assetKey,
+    fingerprint,
+    error: String(err?.message || err || "PDF render failed").slice(0, 400)
+  });
+}
+
+async function claimDownloadCredit(cvId, field) {
+  return CV.findOneAndUpdate(
+    {
+      _id: cvId,
+      [field]: { $gt: 0 }
+    },
+    {
+      $inc: { [field]: -1 }
+    },
+    {
+      new: true
+    }
+  );
+}
+
+async function getFreshCachedPdf(cv, kind, assetKey, fingerprint) {
+  const cacheEntry = getPdfCacheEntry(cv, kind);
+
+  if (!isPdfCacheFresh(cacheEntry, { key: assetKey, fingerprint })) {
+    return null;
+  }
+
+  return readPdfAsset(assetKey);
+}
+
+async function getOrBuildPdfAsset(assetKey, buildFn) {
+  const cached = await readPdfAsset(assetKey);
+
+  if (cached) {
+    return cached;
+  }
+
+  if (inflightPdfBuilds.has(assetKey)) {
+    return inflightPdfBuilds.get(assetKey);
+  }
+
+  const buildPromise = withRenderSlot(async () => {
+    const freshCached = await readPdfAsset(assetKey);
+
+    if (freshCached) {
+      return freshCached;
+    }
+
+    const pdf = await buildFn();
+    await writePdfAsset(assetKey, pdf);
+    return pdf;
+  }).finally(() => {
+    inflightPdfBuilds.delete(assetKey);
+  });
+
+  inflightPdfBuilds.set(assetKey, buildPromise);
+  return buildPromise;
+}
+
+async function buildCvPdf(cv) {
+  const html = renderCvHTML(cv);
+  return renderPdf(html, cvCss);
+}
+
+async function buildCoverLetterPdf(cv) {
+  const lines = cv.coverLetter
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(Boolean);
+
+  const html = `
+      <div class="cover-letter">
+        <div class="address">
+          ${lines.slice(0, 7).map(line => `<p>${line}</p>`).join("")}
+        </div>
+        <div class="body">
+          ${lines.slice(7).map(line => `<p>${line}</p>`).join("")}
+        </div>
+      </div>
+    `;
+
+  return renderPdf(html, coverCss);
+}
+
 async function sendCvPdf(req, res) {
   try {
     const cv = await getOwnedCv(req);
@@ -136,13 +363,36 @@ async function sendCvPdf(req, res) {
       return res.status(402).send("CV payment required");
     }
 
-    const html = renderCvHTML(cv);
-    const pdf = await renderPdf(html, cvCss);
+    const fingerprint = buildCvFingerprint(cv);
+    const assetKey = buildPdfAssetKey({
+      kind: "cv",
+      cvId: cv._id.toString(),
+      fingerprint
+    });
 
-    await CV.updateOne(
-      { _id: cv._id },
-      { $inc: { downloadsRemaining: -1 } }
-    );
+    let pdf = await getFreshCachedPdf(cv, "cv", assetKey, fingerprint);
+
+    if (!pdf) {
+      await setPdfCacheQueued(cv._id, "cv", assetKey, fingerprint);
+
+      try {
+        pdf = await getOrBuildPdfAsset(assetKey, () => buildCvPdf(cv));
+        await setPdfCacheState(
+          cv._id,
+          "cv",
+          buildPdfCacheEntry(assetKey, fingerprint, pdf)
+        );
+      } catch (err) {
+        await setPdfCacheError(cv._id, "cv", assetKey, fingerprint, err);
+        throw err;
+      }
+    }
+
+    const creditClaim = await claimDownloadCredit(cv._id, "downloadsRemaining");
+
+    if (!creditClaim) {
+      return res.status(402).send("CV payment required");
+    }
 
     setPdfHeaders(res, "CV.pdf", pdf, {
       inline: wantsInlinePdf(req)
@@ -166,28 +416,36 @@ async function sendCoverLetterPdf(req, res) {
       return res.status(402).send("Cover letter payment required");
     }
 
-    const lines = cv.coverLetter
-      .split(/\r?\n/)
-      .map(line => line.trim())
-      .filter(Boolean);
+    const fingerprint = buildCoverLetterFingerprint(cv);
+    const assetKey = buildPdfAssetKey({
+      kind: "cover-letter",
+      cvId: cv._id.toString(),
+      fingerprint
+    });
 
-    const html = `
-      <div class="cover-letter">
-        <div class="address">
-          ${lines.slice(0, 7).map(line => `<p>${line}</p>`).join("")}
-        </div>
-        <div class="body">
-          ${lines.slice(7).map(line => `<p>${line}</p>`).join("")}
-        </div>
-      </div>
-    `;
+    let pdf = await getFreshCachedPdf(cv, "coverLetter", assetKey, fingerprint);
 
-    const pdf = await renderPdf(html, coverCss);
+    if (!pdf) {
+      await setPdfCacheQueued(cv._id, "coverLetter", assetKey, fingerprint);
 
-    await CV.updateOne(
-      { _id: cv._id },
-      { $inc: { coverLettersRemaining: -1 } }
-    );
+      try {
+        pdf = await getOrBuildPdfAsset(assetKey, () => buildCoverLetterPdf(cv));
+        await setPdfCacheState(
+          cv._id,
+          "coverLetter",
+          buildPdfCacheEntry(assetKey, fingerprint, pdf)
+        );
+      } catch (err) {
+        await setPdfCacheError(cv._id, "coverLetter", assetKey, fingerprint, err);
+        throw err;
+      }
+    }
+
+    const creditClaim = await claimDownloadCredit(cv._id, "coverLettersRemaining");
+
+    if (!creditClaim) {
+      return res.status(402).send("Cover letter payment required");
+    }
 
     setPdfHeaders(res, "Cover_Letter.pdf", pdf, {
       inline: wantsInlinePdf(req)

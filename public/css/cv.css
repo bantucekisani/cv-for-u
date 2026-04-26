@@ -2035,6 +2035,10 @@ body.pdf-mode .cv-preview {
   cursor: pointer;
 }
 
+.mobile-nav-overlay {
+  display: none;
+}
+
 .landing-footer {
   max-width: 1100px;
   margin: 40px auto 28px;

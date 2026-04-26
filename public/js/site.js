@@ -104,16 +104,19 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   const syncMenuState = (isOpen) => {
-    const shouldOpen = isOpen && isMobileViewport();
-    const overlay = ensureMobileOverlay();
+    const isMobile = isMobileViewport();
+    const shouldOpen = isOpen && isMobile;
+    const overlay = isMobile ? ensureMobileOverlay() : mobileOverlay;
 
     mobileMenu.classList.toggle("show", shouldOpen);
     document.body.classList.toggle("menu-open", shouldOpen);
     menuBtn.textContent = shouldOpen ? "Close" : "Menu";
     menuBtn.setAttribute("aria-expanded", String(shouldOpen));
     mobileMenu.setAttribute("aria-hidden", String(!shouldOpen));
-    overlay.classList.toggle("show", shouldOpen);
-    overlay.setAttribute("aria-hidden", String(!shouldOpen));
+    if (overlay) {
+      overlay.classList.toggle("show", shouldOpen);
+      overlay.setAttribute("aria-hidden", String(!shouldOpen));
+    }
 
     if (shouldOpen) {
       positionMobileOverlay();

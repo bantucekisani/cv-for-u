@@ -39,6 +39,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let mobileOverlay = null;
 
+  const runLogout = () => {
+    if (typeof window.logout === "function") {
+      window.logout();
+      return;
+    }
+
+    try {
+      localStorage.removeItem("user");
+      localStorage.removeItem("token");
+      localStorage.removeItem("lastCvId");
+    } catch {}
+
+    window.location.href = "login.html";
+  };
+
   const ensureMobileOverlay = () => {
     if (mobileOverlay) {
       return mobileOverlay;
@@ -51,7 +66,20 @@ document.addEventListener("DOMContentLoaded", () => {
     document.body.appendChild(mobileOverlay);
 
     mobileOverlay.querySelectorAll("a").forEach((link) => {
-      link.addEventListener("click", () => syncMenuState(false));
+      link.addEventListener("click", (event) => {
+        const isLogoutLink = link.id === "logoutBtn" ||
+          link.dataset.action === "logout" ||
+          String(link.textContent || "").trim().toLowerCase() === "logout";
+
+        if (isLogoutLink || link.getAttribute("href") === "#") {
+          event.preventDefault();
+          syncMenuState(false);
+          runLogout();
+          return;
+        }
+
+        syncMenuState(false);
+      });
     });
 
     mobileOverlay.addEventListener("click", (event) => {

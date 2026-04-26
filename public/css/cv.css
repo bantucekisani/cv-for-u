@@ -1305,6 +1305,10 @@ button {
 }
 /* ================= PDF / PRINT FIX ================= */
 
+@page {
+  size: A4;
+  margin: 0;
+}
 
 
 .cv-section {
@@ -1318,6 +1322,60 @@ h1, h2, h3 {
 .pdf-mode .cv-container {
   width: 210mm !important;
 }
+
+body.pdf-mode {
+  background: #ffffff;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+body.pdf-mode .cv-preview {
+  width: 210mm !important;
+  max-width: 210mm !important;
+  min-width: 210mm !important;
+  min-height: 297mm;
+  margin: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  overflow: hidden;
+}
+
+body.pdf-mode .cv-section {
+  break-inside: auto;
+  page-break-inside: auto;
+}
+
+body.pdf-mode .cv-sidebar-section,
+body.pdf-mode .cv-photo-wrapper,
+body.pdf-mode .cv-item,
+body.pdf-mode .cv-reference,
+body.pdf-mode .cv-block h2 {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+body.pdf-mode .cv-sidebar-section p,
+body.pdf-mode .cv-sidebar-section li,
+body.pdf-mode .cv-item p,
+body.pdf-mode .cv-item li,
+body.pdf-mode .cv-meta,
+body.pdf-mode .cv-title {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+body.pdf-mode .cv-photo-wrapper img {
+  display: block;
+  image-rendering: auto;
+}
+
+body.pdf-mode .cv-sidebar-section,
+body.pdf-mode .cv-item {
+  orphans: 3;
+  widows: 3;
+}
+
 @media print {
   body.pdf-mode {
     background: #ffffff;

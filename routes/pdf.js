@@ -136,7 +136,7 @@ async function renderPdf(html, css) {
     await page.setViewport({
       width: 1200,
       height: 1697,
-      deviceScaleFactor: 1
+      deviceScaleFactor: 2
     });
 
     await page.emulateMediaType("screen");
@@ -158,8 +158,15 @@ async function renderPdf(html, css) {
       { waitUntil: "networkidle0" }
     );
 
+    await page.evaluate(async () => {
+      if (document.fonts?.ready) {
+        await document.fonts.ready;
+      }
+    });
+
     return await page.pdf({
       format: "A4",
+      preferCSSPageSize: true,
       printBackground: true,
       margin: { top: 0, right: 0, bottom: 0, left: 0 }
     });

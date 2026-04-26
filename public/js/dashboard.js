@@ -44,10 +44,39 @@ function escapeHtml(value) {
   }[char]));
 }
 
+function neutralizeJobFinderCopy(text = "", candidateName = "") {
+  let output = String(text || "").trim();
+  const fullName = String(candidateName || "").trim();
+
+  if (!output || !fullName) {
+    return output;
+  }
+
+  const escapeRegex = value => String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const escapedFullName = escapeRegex(fullName);
+  const firstName = escapeRegex(fullName.split(/\s+/)[0] || "");
+
+  if (escapedFullName) {
+    output = output.replace(new RegExp(`\\b${escapedFullName}'s\\b`, "gi"), "this CV's");
+    output = output.replace(new RegExp(`\\b${escapedFullName}\\b`, "gi"), "This CV");
+  }
+
+  if (firstName && firstName.length >= 3) {
+    output = output.replace(
+      new RegExp(`(^|[.!?]\\s+|\\n+)${firstName}\\b`, "gi"),
+      (_, prefix) => `${prefix}This CV`
+    );
+    output = output.replace(new RegExp(`\\b${firstName}'s\\b`, "gi"), "this CV's");
+  }
+
+  return output;
+}
+
 function buildJobFinderSummary(cv) {
   const searches = Array.isArray(cv.jobSearches) ? cv.jobSearches : [];
   const latest = searches[0] || null;
   const topRole = latest?.targetRoles?.[0] || null;
+  const candidateName = cv.name || "";
   const remaining = Math.max(0, Number(cv.jobFinderUsesRemaining || 0));
   const remainingLine = cv.isPaid === true
     ? `<p>Find Me a Job searches left: ${remaining}</p>`
@@ -63,14 +92,16 @@ function buildJobFinderSummary(cv) {
   }
 
   const safeTitle = escapeHtml(topRole.roleTitle || "Latest role");
-  const safeVerdict = escapeHtml(topRole.whyFit || latest.profileSummary || "Job finder ready");
+  const safeVerdict = escapeHtml(
+    neutralizeJobFinderCopy(topRole.whyFit || latest.profileSummary || "Job finder ready", candidateName)
+  );
   const safeDate = latest.createdAt
     ? escapeHtml(new Date(latest.createdAt).toLocaleString())
     : "";
 
   return `
     <div class="cv-job-match">
-      <p><strong>Latest job search:</strong> ${Number(topRole.matchScore || 0)}% fit for ${safeTitle}</p>
+      <p><strong>Latest search plan:</strong> ${Number(topRole.matchScore || 0)}% fit for ${safeTitle}</p>
       <p>${safeVerdict}${safeDate ? ` | ${safeDate}` : ""}</p>
       <p>Saved searches: ${searches.length}</p>
       ${remainingLine}

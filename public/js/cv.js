@@ -143,6 +143,34 @@ function setJobMatchMessage(message, type = "error") {
   element.style.color = type === "success" ? "#166534" : "#b91c1c";
 }
 
+function neutralizeJobFinderCopy(text = "") {
+  let output = String(text || "").trim();
+  const candidateName = clean(currentCv?.name || "");
+
+  if (!output || !candidateName) {
+    return output;
+  }
+
+  const escapeRegex = value => String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const fullName = escapeRegex(candidateName);
+  const firstName = escapeRegex(candidateName.split(/\s+/)[0] || "");
+
+  if (fullName) {
+    output = output.replace(new RegExp(`\\b${fullName}'s\\b`, "gi"), "this CV's");
+    output = output.replace(new RegExp(`\\b${fullName}\\b`, "gi"), "This CV");
+  }
+
+  if (firstName && firstName.length >= 3) {
+    output = output.replace(
+      new RegExp(`(^|[.!?]\\s+|\\n+)${firstName}\\b`, "gi"),
+      (_, prefix) => `${prefix}This CV`
+    );
+    output = output.replace(new RegExp(`\\b${firstName}'s\\b`, "gi"), "this CV's");
+  }
+
+  return output;
+}
+
 function renderJobBoardLinks(target = {}) {
   const links = [
     { label: "Google Jobs", url: target.googleJobsUrl },
@@ -162,6 +190,7 @@ function renderJobBoardLinks(target = {}) {
 
   return `
     <div class="job-board-links">
+      <div class="job-match-summary-line"><strong>Open live jobs on:</strong></div>
       ${links.map(link => `
         <a class="job-board-link" href="${escapeHtml(link.url)}" target="_blank" rel="noopener">
           ${escapeHtml(link.label)}
@@ -187,11 +216,12 @@ function renderJobMatchResult(result = null) {
     <div class="job-match-meta">
       <strong>Job search plan ready</strong>
       <div>${escapeHtml(result.locationFocus || "Preferred location")}</div>
+      <div>Open the platform buttons below to view live jobs.</div>
     </div>
     ${result.profileSummary ? `
       <div class="job-match-card" style="margin-bottom:12px;">
-        <h4>Search Summary</h4>
-        <p>${escapeHtml(result.profileSummary)}</p>
+        <h4>CV Fit Summary</h4>
+        <p>${escapeHtml(neutralizeJobFinderCopy(result.profileSummary))}</p>
       </div>
     ` : ""}
     ${Array.isArray(result.searchTips) && result.searchTips.length ? `
@@ -220,8 +250,8 @@ function renderJobMatchResult(result = null) {
               </div>
               <span class="job-match-score" style="background:${scoreColor};">${score}%</span>
             </div>
-            <p class="job-match-summary-line"><strong>Search:</strong> ${escapeHtml(target.searchQuery || target.roleTitle || "")}</p>
-            ${target.whyFit ? `<p class="job-match-summary-line">${escapeHtml(target.whyFit)}</p>` : ""}
+            <p class="job-match-summary-line"><strong>Job board search:</strong> ${escapeHtml(target.searchQuery || target.roleTitle || "")}</p>
+            ${target.whyFit ? `<p class="job-match-summary-line"><strong>Why it fits:</strong> ${escapeHtml(neutralizeJobFinderCopy(target.whyFit))}</p>` : ""}
             ${Array.isArray(target.keywords) && target.keywords.length ? `
               <p class="job-match-summary-line"><strong>Keywords:</strong> ${target.keywords.map(item => escapeHtml(item)).join(", ")}</p>
             ` : ""}
@@ -269,7 +299,9 @@ function renderJobMatchHistory(matches = []) {
       const jobTitle = escapeHtml(topRole.roleTitle || "Untitled role");
       const locationFocus = escapeHtml(item.locationFocus || "Preferred location");
       const dateLabel = escapeHtml(formatJobMatchDate(item.createdAt));
-      const summary = escapeHtml(item.profileSummary || topRole.whyFit || "");
+      const summary = escapeHtml(
+        neutralizeJobFinderCopy(item.profileSummary || topRole.whyFit || "")
+      );
       const primaryUrl = [
         topRole.googleJobsUrl,
         topRole.indeedUrl,
@@ -294,9 +326,9 @@ function renderJobMatchHistory(matches = []) {
             </div>
             <span class="job-match-score">${Number(topRole.matchScore || 0)}%</span>
           </div>
-          <p class="job-match-summary-line">${Number(item.targetRoles?.length || 0)} search target(s)</p>
+          <p class="job-match-summary-line">${Number(item.targetRoles?.length || 0)} search target(s) ready for external job boards.</p>
           ${summary ? `<p class="job-match-summary-line">${summary}</p>` : ""}
-          ${safeUrl ? `<a class="job-match-link" href="${safeUrl}" target="_blank" rel="noopener">Open top job search</a>` : ""}
+          ${safeUrl ? `<a class="job-match-link" href="${safeUrl}" target="_blank" rel="noopener">Open top search on a job board</a>` : ""}
         </div>
       `;
     }).join("")}

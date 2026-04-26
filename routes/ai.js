@@ -219,6 +219,48 @@ function normalizeCvPayload(cv = {}) {
   };
 }
 
+function escapeRegex(text) {
+  return String(text || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function neutralizeCandidateReference(text = "", candidateName = "") {
+  let output = cleanText(text, 4000);
+  const fullName = cleanText(candidateName, 120);
+
+  if (!output || !fullName) {
+    return output;
+  }
+
+  const parts = fullName.split(/\s+/).filter(Boolean);
+  const firstName = parts[0] || "";
+  const replacements = [fullName];
+
+  if (firstName && firstName.length >= 3) {
+    replacements.push(firstName);
+  }
+
+  replacements.forEach((name, index) => {
+    const escaped = escapeRegex(name);
+    if (!escaped) {
+      return;
+    }
+
+    if (index === 0) {
+      output = output.replace(new RegExp(`\\b${escaped}'s\\b`, "gi"), "the candidate's");
+      output = output.replace(new RegExp(`\\b${escaped}\\b`, "gi"), "the candidate");
+      return;
+    }
+
+    output = output.replace(
+      new RegExp(`(^|[.!?]\\s+|\\n+)${escaped}\\b`, "gi"),
+      (_, prefix) => `${prefix}The candidate`
+    );
+    output = output.replace(new RegExp(`\\b${escaped}'s\\b`, "gi"), "the candidate's");
+  });
+
+  return output.replace(/\bthe candidate\b/i, "This CV");
+}
+
 function clampScore(value) {
   const score = Number.parseInt(value, 10);
 
@@ -352,7 +394,10 @@ function buildGoogleSiteJobUrl(domain, query, location, market = DEFAULT_JOB_MAR
   return `https://www.google.com/search?q=${encodeURIComponent(searchTerms)}`;
 }
 
-function normalizeJobFinderPayload(plan = {}, { defaultLocation = DEFAULT_JOB_MARKET.countryLabel } = {}) {
+function normalizeJobFinderPayload(
+  plan = {},
+  { defaultLocation = DEFAULT_JOB_MARKET.countryLabel, candidateName = "" } = {}
+) {
   const targetRoles = Array.isArray(plan.targetRoles)
     ? plan.targetRoles
       .map(role => ({
@@ -360,7 +405,10 @@ function normalizeJobFinderPayload(plan = {}, { defaultLocation = DEFAULT_JOB_MA
         searchQuery: cleanText(role?.searchQuery || role?.roleTitle, 160),
         location: cleanText(role?.location, 120),
         matchScore: clampScore(role?.matchScore),
-        whyFit: cleanText(role?.whyFit, 260),
+        whyFit: cleanText(
+          neutralizeCandidateReference(role?.whyFit, candidateName),
+          260
+        ),
         keywords: normalizeStringArray(role?.keywords, {
           maxItems: 8,
           maxLength: 60
@@ -372,7 +420,10 @@ function normalizeJobFinderPayload(plan = {}, { defaultLocation = DEFAULT_JOB_MA
 
   return {
     locationFocus: cleanText(plan.locationFocus, 120) || defaultLocation,
-    profileSummary: cleanText(plan.profileSummary, 400),
+    profileSummary: cleanText(
+      neutralizeCandidateReference(plan.profileSummary, candidateName),
+      400
+    ),
     searchTips: normalizeStringArray(plan.searchTips, {
       maxItems: 6,
       maxLength: 140
@@ -813,9 +864,11 @@ Instructions:
 - Use the preferred location when it is provided, otherwise infer the strongest location from the CV.
 - Estimate fit honestly from 0 to 100.
 - Explain briefly why each target role fits this CV.
+- Do not mention the candidate's personal name in profileSummary or whyFit. Use phrases like "this CV" or "the candidate" instead.
 - Suggest practical search tips for this candidate.
 - Use plain professional language suitable for people searching in ${jobMarket.countryLabel}.
 - Prefer job-board searches and locations that fit the candidate's country.
+- Treat this as a search plan that opens external job boards, not as a list of live vacancies inside CV for U.
 
 Return JSON only:
 {
@@ -837,7 +890,8 @@ Return JSON only:
       temperature: 0.3
     });
     const plan = normalizeJobFinderPayload(data, {
-      defaultLocation: jobMarket.countryLabel
+      defaultLocation: jobMarket.countryLabel,
+      candidateName: normalizedCv.name
     });
 
     if (!plan.targetRoles.length) {

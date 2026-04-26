@@ -674,12 +674,7 @@ if (!editingId && pendingOpenJobMatch) {
       return;
     }
 
-    const { keepManualScale = false } = options;
     const autoScale = getAutoPreviewScale();
-
-    if (!keepManualScale && manualPreviewScale !== null && manualPreviewScale < autoScale) {
-      manualPreviewScale = null;
-    }
 
     const scale = clampPreviewScale(manualPreviewScale ?? autoScale);
 
@@ -691,6 +686,7 @@ if (!editingId && pendingOpenJobMatch) {
 
       if (zoomLabel) {
         zoomLabel.textContent = `${Math.round(scale * 100)}%`;
+        zoomLabel.title = "Click to reset to fit";
       }
     });
   }
@@ -809,8 +805,8 @@ if (zoomOutBtn) {
     const baseScale = manualPreviewScale ?? autoScale;
     const nextScale = clampPreviewScale(baseScale - 0.1);
 
-    manualPreviewScale = nextScale <= autoScale ? null : nextScale;
-    updatePreviewScale();
+    manualPreviewScale = nextScale;
+    updatePreviewScale({ keepManualScale: true });
   });
 }
 
@@ -823,8 +819,15 @@ if (zoomInBtn) {
   });
 }
 
+if (zoomLabel) {
+  zoomLabel.addEventListener("click", () => {
+    manualPreviewScale = null;
+    updatePreviewScale();
+  });
+}
+
 window.addEventListener("resize", () => {
-  updatePreviewScale();
+  updatePreviewScale({ keepManualScale: true });
 });
 
 

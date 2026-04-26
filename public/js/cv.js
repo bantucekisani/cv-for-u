@@ -622,9 +622,13 @@ if (!editingId && pendingOpenJobMatch) {
   const inputSkills = $("inputSkills");
   const inputPhoto = $("inputPhoto");
 
+  const cvPreviewStage = $("cvPreviewStage");
   const cvPreview = $("cvPreview");
   const templateSelect = $("templateSelect");
   const colorSelect = $("colorSelect");
+  const zoomOutBtn = $("zoomOutBtn");
+  const zoomInBtn = $("zoomInBtn");
+  const zoomLabel = $("zoomLabel");
 
   const experienceList = $("experienceList");
   const educationList = $("educationList");
@@ -641,7 +645,55 @@ if (!editingId && pendingOpenJobMatch) {
   const previewExperience = $("previewExperience");
   const previewEducation = $("previewEducation");
   const previewReferences = $("previewReferences");
-  const previewPhoto = $("previewPhoto");   
+  const previewPhoto = $("previewPhoto");
+
+  const PREVIEW_PAGE_WIDTH = 794;
+  const PREVIEW_MIN_SCALE = 0.36;
+  const PREVIEW_MAX_SCALE = 1.35;
+  let manualPreviewScale = null;
+
+  function clampPreviewScale(value, min = PREVIEW_MIN_SCALE, max = PREVIEW_MAX_SCALE) {
+    return Math.min(max, Math.max(min, value));
+  }
+
+  function getAutoPreviewScale() {
+    if (!cvPreviewStage) {
+      return 1;
+    }
+
+    const stageWidth =
+      cvPreviewStage.clientWidth ||
+      cvPreviewStage.getBoundingClientRect().width ||
+      PREVIEW_PAGE_WIDTH;
+
+    return clampPreviewScale(Math.min(1, stageWidth / PREVIEW_PAGE_WIDTH));
+  }
+
+  function updatePreviewScale(options = {}) {
+    if (!cvPreviewStage || !cvPreview) {
+      return;
+    }
+
+    const { keepManualScale = false } = options;
+    const autoScale = getAutoPreviewScale();
+
+    if (!keepManualScale && manualPreviewScale !== null && manualPreviewScale < autoScale) {
+      manualPreviewScale = null;
+    }
+
+    const scale = clampPreviewScale(manualPreviewScale ?? autoScale);
+
+    cvPreviewStage.style.setProperty("--preview-scale", String(scale));
+
+    window.requestAnimationFrame(() => {
+      const naturalHeight = cvPreview.scrollHeight || cvPreview.offsetHeight || 0;
+      cvPreviewStage.style.height = `${Math.max(240, Math.ceil(naturalHeight * scale))}px`;
+
+      if (zoomLabel) {
+        zoomLabel.textContent = `${Math.round(scale * 100)}%`;
+      }
+    });
+  }
 
 
   [
@@ -715,6 +767,7 @@ inputPhoto.addEventListener("change", () => {
     photoData = canvas.toDataURL("image/jpeg", 0.8);
 
     previewPhoto.src = photoData;
+    updatePreviewScale();
 
     setStatus("Photo updated", "#16a34a");
     autoSave(200);
@@ -737,6 +790,7 @@ inputPhoto.addEventListener("change", () => {
   cvPreview.className = "cv-preview";
   cvPreview.classList.add(template);
   cvPreview.classList.add(`color-${color}`);
+  updatePreviewScale({ keepManualScale: true });
 }
 
   
@@ -748,6 +802,30 @@ colorSelect.onchange = () => {
   applyTemplateAndColor();
   touchCv(200);
 };
+
+if (zoomOutBtn) {
+  zoomOutBtn.addEventListener("click", () => {
+    const autoScale = getAutoPreviewScale();
+    const baseScale = manualPreviewScale ?? autoScale;
+    const nextScale = clampPreviewScale(baseScale - 0.1);
+
+    manualPreviewScale = nextScale <= autoScale ? null : nextScale;
+    updatePreviewScale();
+  });
+}
+
+if (zoomInBtn) {
+  zoomInBtn.addEventListener("click", () => {
+    const autoScale = getAutoPreviewScale();
+    const baseScale = manualPreviewScale ?? autoScale;
+    manualPreviewScale = clampPreviewScale(baseScale + 0.1);
+    updatePreviewScale({ keepManualScale: true });
+  });
+}
+
+window.addEventListener("resize", () => {
+  updatePreviewScale();
+});
 
 
 
@@ -785,6 +863,7 @@ $("aiCloseBtn")?.addEventListener("click", () => {
         li.textContent = s;
         previewSkills.appendChild(li);
       });
+    updatePreviewScale();
   }
   inputSkills.addEventListener("input", () => {
     refreshSkills();
@@ -806,6 +885,7 @@ $("aiCloseBtn")?.addEventListener("click", () => {
           ${bullets.length ? `<ul>${bullets.map(x => `<li>${x}</li>`).join("")}</ul>` : ""}
         </article>`;
     });
+    updatePreviewScale();
   }
 
   function createExperienceBlock(data = {}, options = {}) {
@@ -852,6 +932,7 @@ $("aiCloseBtn")?.addEventListener("click", () => {
           <p class="cv-meta">${b.querySelector(".edu-location").value || ""} • ${b.querySelector(".edu-year").value || ""}</p>
         </article>`;
     });
+    updatePreviewScale();
   }
 
   function createEducationBlock(data = {}, options = {}) {
@@ -886,6 +967,7 @@ $("aiCloseBtn")?.addEventListener("click", () => {
     previewReferences.innerHTML = "";
     if (refOnRequest.checked) {
       previewReferences.innerHTML = "<p>References available on request</p>";
+      updatePreviewScale();
       return;
     }
     [...referencesList.children].forEach(b => {
@@ -899,6 +981,7 @@ $("aiCloseBtn")?.addEventListener("click", () => {
         ${roleAndCompany}<br>
         ${phone}</p>`;
     });
+    updatePreviewScale();
   }
 
   function createReferenceBlock(data = {}, options = {}) {
@@ -946,6 +1029,7 @@ function renderPreviewFromState() {
   refreshExperiencePreview();
   refreshEducationPreview();
   refreshReferencesPreview();
+  updatePreviewScale();
 }
 
 async function loadCV(id) {

@@ -3561,3 +3561,99 @@ body.landing-body .job-discovery-card {
   font-size: 0.76rem;
   font-weight: 600;
 }
+
+/* =========================================================
+   CREATE CV PHONE PREVIEW FIT MODE
+========================================================= */
+body.cv-body:not(.pdf-mode) .cv-preview-wrapper {
+  overflow: hidden;
+}
+
+body.cv-body:not(.pdf-mode) .cv-preview-stage {
+  --preview-scale: 1;
+  position: relative;
+  width: 100%;
+  min-height: 240px;
+  overflow: hidden;
+}
+
+body.cv-body:not(.pdf-mode) .cv-preview-wrapper .cv-preview {
+  width: 794px !important;
+  max-width: none !important;
+  min-width: 794px !important;
+  min-height: 1123px;
+  margin: 0 !important;
+  transform: scale(var(--preview-scale, 1)) !important;
+  transform-origin: top left !important;
+  grid-template-columns: 30% 70% !important;
+  box-shadow: var(--shadow-soft);
+  border-radius: 16px;
+}
+
+body.cv-body:not(.pdf-mode) .template-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+body.cv-body:not(.pdf-mode) .template-toolbar label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #475569;
+}
+
+body.cv-body:not(.pdf-mode) .template-toolbar select {
+  min-width: 150px;
+}
+
+@media (max-width: 768px) {
+  body.cv-body:not(.pdf-mode) .cv-layout {
+    padding: 0;
+  }
+
+  body.cv-body:not(.pdf-mode) .template-toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 110;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.96);
+    border-bottom: 1px solid #e5e7eb;
+    backdrop-filter: blur(10px);
+  }
+
+  body.cv-body:not(.pdf-mode) .template-toolbar label {
+    display: none;
+  }
+
+  body.cv-body:not(.pdf-mode) .template-toolbar select {
+    width: 100%;
+    min-width: 0;
+  }
+
+  body.cv-body:not(.pdf-mode) .zoom-controls {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+
+  body.cv-body:not(.pdf-mode) .cv-preview-wrapper {
+    width: 100%;
+    padding: 0 12px 24px;
+  }
+
+  body.cv-body:not(.pdf-mode) .cv-preview-stage {
+    width: 100%;
+  }
+
+  body.cv-body:not(.pdf-mode) .cv-preview-wrapper .cv-preview {
+    width: 794px !important;
+    max-width: none !important;
+    min-width: 794px !important;
+    grid-template-columns: 30% 70% !important;
+    border-radius: 18px;
+    box-shadow: 0 16px 30px rgba(15, 23, 42, 0.12);
+  }
+}

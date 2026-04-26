@@ -436,13 +436,14 @@
         </select>
 
         <div class="zoom-controls">
-          <button id="zoomOutBtn">−</button>
+          <button type="button" id="zoomOutBtn" aria-label="Zoom out">-</button>
           <span id="zoomLabel">100%</span>
-          <button id="zoomInBtn">+</button>
+          <button type="button" id="zoomInBtn" aria-label="Zoom in">+</button>
         </div>
       </div>
 
       <!-- FULL CV PREVIEW -->
+      <div class="cv-preview-stage" id="cvPreviewStage">
       <div id="cvPreview" class="cv-preview templateA">
 
         <!-- SIDEBAR -->
@@ -497,6 +498,7 @@
 
         </section> <!-- END cv-main -->
       </div> <!-- END cvPreview -->
+      </div> <!-- END cvPreviewStage -->
     </section> <!-- END cv-preview-wrapper -->
   </main> <!-- END cv-layout -->
 

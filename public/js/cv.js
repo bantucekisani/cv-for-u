@@ -629,6 +629,8 @@ if (!editingId && pendingOpenJobMatch) {
   const zoomOutBtn = $("zoomOutBtn");
   const zoomInBtn = $("zoomInBtn");
   const zoomLabel = $("zoomLabel");
+  const previewUpBtn = $("previewUpBtn");
+  const previewDownBtn = $("previewDownBtn");
 
   const experienceList = $("experienceList");
   const educationList = $("educationList");
@@ -651,6 +653,10 @@ if (!editingId && pendingOpenJobMatch) {
   const PREVIEW_MIN_SCALE = 0.36;
   const PREVIEW_MAX_SCALE = 1.35;
   let manualPreviewScale = null;
+
+  function isMobilePreviewViewport() {
+    return window.innerWidth <= 768;
+  }
 
   function clampPreviewScale(value, min = PREVIEW_MIN_SCALE, max = PREVIEW_MAX_SCALE) {
     return Math.min(max, Math.max(min, value));
@@ -682,7 +688,19 @@ if (!editingId && pendingOpenJobMatch) {
 
     window.requestAnimationFrame(() => {
       const naturalHeight = cvPreview.scrollHeight || cvPreview.offsetHeight || 0;
-      cvPreviewStage.style.height = `${Math.max(240, Math.ceil(naturalHeight * scale))}px`;
+      const scaledHeight = Math.max(240, Math.ceil(naturalHeight * scale));
+
+      if (isMobilePreviewViewport()) {
+        cvPreviewStage.style.height = `${scaledHeight}px`;
+        cvPreviewStage.classList.remove("is-scrollable");
+      } else {
+        const stageTop = cvPreviewStage.getBoundingClientRect().top;
+        const availableHeight = Math.max(420, Math.floor(window.innerHeight - stageTop - 24));
+        const viewportHeight = Math.min(scaledHeight, availableHeight);
+
+        cvPreviewStage.style.height = `${viewportHeight}px`;
+        cvPreviewStage.classList.toggle("is-scrollable", scaledHeight > viewportHeight + 6);
+      }
 
       if (zoomLabel) {
         zoomLabel.textContent = `${Math.round(scale * 100)}%`;
@@ -819,10 +837,34 @@ if (zoomInBtn) {
   });
 }
 
-if (zoomLabel) {
+  if (zoomLabel) {
   zoomLabel.addEventListener("click", () => {
     manualPreviewScale = null;
     updatePreviewScale();
+  });
+}
+
+function scrollPreviewBy(step) {
+  if (!cvPreviewStage) {
+    return;
+  }
+
+  const amount = Math.max(160, Math.round(cvPreviewStage.clientHeight * 0.72));
+  cvPreviewStage.scrollBy({
+    top: step * amount,
+    behavior: "smooth"
+  });
+}
+
+if (previewUpBtn) {
+  previewUpBtn.addEventListener("click", () => {
+    scrollPreviewBy(-1);
+  });
+}
+
+if (previewDownBtn) {
+  previewDownBtn.addEventListener("click", () => {
+    scrollPreviewBy(1);
   });
 }
 

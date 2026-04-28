@@ -17,6 +17,26 @@
     .link-btn:hover {
       text-decoration: underline;
     }
+    .payment-guidance {
+      margin: 18px 0;
+      padding: 14px;
+      border: 1px solid #dbeafe;
+      border-radius: 8px;
+      background: #eff6ff;
+      color: #0f172a;
+      font-size: 14px;
+      line-height: 1.5;
+      text-align: left;
+    }
+    .payment-guidance strong {
+      color: #082f49;
+    }
+    .payment-guidance p {
+      margin: 0;
+    }
+    .payment-guidance p + p {
+      margin-top: 8px;
+    }
   </style>
 </head>
 
@@ -47,6 +67,7 @@
 
       <ul class="pay-inclusions">
         <li>Secure payment redirect handled by PayFast</li>
+        <li>Debit card users should choose Credit &amp; Cheque card on PayFast</li>
         <li>Your unlock stays tied to the selected CV flow</li>
         <li>The R40 CV unlock includes 4 Find Me a Job searches</li>
         <li>After those 4 searches are used, R25 unlocks 4 more</li>
@@ -69,11 +90,23 @@
         <span class="payment-pill">No subscription</span>
       </div>
 
-      <button id="payBtn" class="primary-btn">Pay with PayFast</button>
+      <div class="payment-guidance" aria-label="Debit card payment guidance">
+        <p>
+          <strong>Using a debit card?</strong> On PayFast, choose
+          <strong>Credit &amp; Cheque card</strong> and enter your debit card number,
+          expiry date, and CVV.
+        </p>
+        <p>
+          Do not choose PayFast's separate <strong>Debit Card</strong> option unless
+          you specifically use its supported MTN/Vodacom bank flow.
+        </p>
+      </div>
+
+      <button id="payBtn" class="primary-btn">Continue to secure card payment</button>
       <button id="cancelPayBtn" class="secondary-btn">Cancel</button>
 
       <p id="payError" class="pay-error"></p>
-      <p class="secure">Payments are processed on PayFast and then returned to CV for U.</p>
+      <p class="secure">Payments are processed on PayFast and then returned to CV for U. Visa and Mastercard debit cards should use the Credit &amp; Cheque card option.</p>
       <p class="ownership-note">CV for U is a product of Holovision Technologies (Pty) Ltd.</p>
     </section>
   </div>

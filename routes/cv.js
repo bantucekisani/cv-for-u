@@ -18,6 +18,16 @@ function resetPdfCache(cv, { resetCv = false, resetCoverLetter = false } = {}) {
   }
 }
 
+function normalizePhoto(value, fallback = null) {
+  const photo = String(value || "").trim();
+
+  if (!photo || !photo.startsWith("data:image/")) {
+    return fallback;
+  }
+
+  return photo.length <= 2_000_000 ? photo : fallback;
+}
+
 /* ======================================================
    SAVE CV (CREATE or UPDATE)
    POST /api/cv/save
@@ -49,13 +59,8 @@ router.post("/save", auth, async (req, res) => {
         });
       }
 
-      // 🔥 reclaim old orphaned CVs
-      if (!cv.userId) {
-        cv.userId = userId;
-      }
-
       // 🔒 security
-      if (cv.userId.toString() !== userId) {
+      if (!cv.userId || cv.userId.toString() !== userId) {
         return res.status(403).json({
           success: false,
           message: "Forbidden"
@@ -103,7 +108,7 @@ router.post("/save", auth, async (req, res) => {
     cv.color = body.color || "blue";
 
     /* ===== PHOTO ===== */
-    cv.photo = body.photo || cv.photo || null;
+    cv.photo = normalizePhoto(body.photo, cv.photo || null);
 
     resetPdfCache(cv, {
       resetCv: true,
@@ -250,13 +255,7 @@ router.get("/:id", auth, async (req, res) => {
       return res.status(404).json({ success: false });
     }
 
-    // 🔥 auto-fix old CVs
-    if (!cv.userId) {
-      cv.userId = req.user.id;
-      await cv.save();
-    }
-
-    if (cv.userId.toString() !== req.user.id) {
+    if (!cv.userId || cv.userId.toString() !== req.user.id) {
       return res.status(403).json({ success: false });
     }
 

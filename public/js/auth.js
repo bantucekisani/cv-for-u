@@ -214,7 +214,10 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 
         if (debugBox && data.resetUrl) {
-          debugBox.innerHTML = `<a href="${data.resetUrl}">Open reset link</a>`;
+          const link = document.createElement("a");
+          link.href = data.resetUrl;
+          link.textContent = "Open reset link";
+          debugBox.replaceChildren(link);
         }
 
         if (!res.ok || !data.success) {

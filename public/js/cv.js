@@ -118,6 +118,8 @@ function escapeHtml(value) {
   }[char]));
 }
 
+const escapeAttr = escapeHtml;
+
 function getApiErrorMessage(error, fallback = "Something went wrong.") {
   const raw = String(error?.message || "").trim();
 
@@ -954,12 +956,12 @@ $("aiCloseBtn")?.addEventListener("click", () => {
       const bullets = b.querySelector(".exp-bullets").value.split("\n").filter(Boolean);
       previewExperience.innerHTML += `
         <article class="cv-item">
-         <h3>${b.querySelector(".exp-title").value || "Job title"} – ${b.querySelector(".exp-company").value || "Company"}</h3>
+         <h3>${escapeHtml(b.querySelector(".exp-title").value || "Job title")} – ${escapeHtml(b.querySelector(".exp-company").value || "Company")}</h3>
 <p class="cv-meta">
-  ${b.querySelector(".exp-period")?.value || ""}
+  ${escapeHtml(b.querySelector(".exp-period")?.value || "")}
 </p>
 
-          ${bullets.length ? `<ul>${bullets.map(x => `<li>${x}</li>`).join("")}</ul>` : ""}
+          ${bullets.length ? `<ul>${bullets.map(x => `<li>${escapeHtml(x)}</li>`).join("")}</ul>` : ""}
         </article>`;
     });
     updatePreviewScale();
@@ -970,17 +972,17 @@ $("aiCloseBtn")?.addEventListener("click", () => {
     const d = document.createElement("div");
     d.className = "exp-block";
     d.innerHTML = `
-  <input class="exp-title" placeholder="Job title" value="${data.title || ""}">
-  <input class="exp-company" placeholder="Company" value="${data.company || ""}">
+  <input class="exp-title" placeholder="Job title" value="${escapeAttr(data.title || "")}">
+  <input class="exp-company" placeholder="Company" value="${escapeAttr(data.company || "")}">
 
   <!-- SAFE: optional fields -->
   <input
   class="exp-period"
   placeholder="e.g. Jan 2022 – Dec 2024"
-  value="${data.dates || ""}"
+  value="${escapeAttr(data.dates || "")}"
 >
 
-  <textarea class="exp-bullets" placeholder="• Duties\n• Achievements">${(data.bullets || []).join("\n")}</textarea>
+  <textarea class="exp-bullets" placeholder="• Duties\n• Achievements">${escapeHtml((data.bullets || []).join("\n"))}</textarea>
   <button class="small-btn danger-small">Remove</button><hr/>`;
 
     d.querySelector("button").onclick = () => {
@@ -1005,8 +1007,8 @@ $("aiCloseBtn")?.addEventListener("click", () => {
     [...educationList.children].forEach(b => {
       previewEducation.innerHTML += `
         <article class="cv-item">
-          <h3>${b.querySelector(".edu-qualification").value || "Qualification"} – ${b.querySelector(".edu-institution").value || "Institution"}</h3>
-          <p class="cv-meta">${b.querySelector(".edu-location").value || ""} • ${b.querySelector(".edu-year").value || ""}</p>
+          <h3>${escapeHtml(b.querySelector(".edu-qualification").value || "Qualification")} – ${escapeHtml(b.querySelector(".edu-institution").value || "Institution")}</h3>
+          <p class="cv-meta">${escapeHtml(b.querySelector(".edu-location").value || "")} • ${escapeHtml(b.querySelector(".edu-year").value || "")}</p>
         </article>`;
     });
     updatePreviewScale();
@@ -1017,10 +1019,10 @@ $("aiCloseBtn")?.addEventListener("click", () => {
     const d = document.createElement("div");
     d.className = "edu-block";
     d.innerHTML = `
-      <input class="edu-qualification" placeholder="Qualification" value="${data.qualification || ""}">
-      <input class="edu-institution" placeholder="Institution" value="${data.institution || ""}">
-      <input class="edu-location" placeholder="Location" value="${data.location || ""}">
-      <input class="edu-year" placeholder="Dates attended or expected completion" value="${data.year || ""}">
+      <input class="edu-qualification" placeholder="Qualification" value="${escapeAttr(data.qualification || "")}">
+      <input class="edu-institution" placeholder="Institution" value="${escapeAttr(data.institution || "")}">
+      <input class="edu-location" placeholder="Location" value="${escapeAttr(data.location || "")}">
+      <input class="edu-year" placeholder="Dates attended or expected completion" value="${escapeAttr(data.year || "")}">
       <p class="helper-text edu-help">Example: 2021 - 2024, Jan 2023 - Present, or Expected 2027</p>
       <button class="small-btn danger-small">Remove</button><hr/>`;
     d.querySelector("button").onclick = () => {
@@ -1054,9 +1056,9 @@ $("aiCloseBtn")?.addEventListener("click", () => {
       const roleAndCompany = [role, company].filter(Boolean).join(" - ") || "Role - Company";
 
       previewReferences.innerHTML += `
-        <p><strong>${b.querySelector(".ref-name").value || "Name"}</strong><br>
-        ${roleAndCompany}<br>
-        ${phone}</p>`;
+        <p><strong>${escapeHtml(b.querySelector(".ref-name").value || "Name")}</strong><br>
+        ${escapeHtml(roleAndCompany)}<br>
+        ${escapeHtml(phone)}</p>`;
     });
     updatePreviewScale();
   }
@@ -1066,10 +1068,10 @@ $("aiCloseBtn")?.addEventListener("click", () => {
     const d = document.createElement("div");
     d.className = "ref-block";
     d.innerHTML = `
-      <input class="ref-name" placeholder="Name" value="${data.name || ""}">
-      <input class="ref-role" placeholder="Role" value="${data.role || ""}">
-      <input class="ref-company" placeholder="Company" value="${data.company || ""}">
-      <input class="ref-phone" placeholder="Phone" value="${data.phone || ""}">
+      <input class="ref-name" placeholder="Name" value="${escapeAttr(data.name || "")}">
+      <input class="ref-role" placeholder="Role" value="${escapeAttr(data.role || "")}">
+      <input class="ref-company" placeholder="Company" value="${escapeAttr(data.company || "")}">
+      <input class="ref-phone" placeholder="Phone" value="${escapeAttr(data.phone || "")}">
       <button class="small-btn danger-small">Remove</button><hr/>`;
     d.querySelector("button").onclick = () => {
       d.remove();
@@ -1586,6 +1588,25 @@ $("suggestSkillsBtn")?.addEventListener("click", async () => {
     return true;
   }
 
+  function openBlobDownload(blob, filename, popup = null) {
+    const url = URL.createObjectURL(blob);
+
+    if (popup && !popup.closed) {
+      popup.location.replace(url);
+      setTimeout(() => URL.revokeObjectURL(url), 30000);
+      return;
+    }
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  }
+
   async function saveCoverLetterDraft(coverLetterText = $("coverOutput")?.value || "") {
     const coverLetter = String(coverLetterText || "").trim();
 
@@ -1648,24 +1669,6 @@ $("suggestSkillsBtn")?.addEventListener("click", async () => {
 
         disableBtn("downloadPdfBtn", "Processing...");
 
-        const directUrl =
-          `${window.API_BASE}/api/pdf/cv/${currentCv._id}?token=${encodeURIComponent(token)}&inline=1`;
-
-        if (isIOSDevice()) {
-          openDirectDownload(directUrl, iosDownloadWindow);
-          decrementRemainingCount("downloadsRemaining");
-          updateDownloadCounter();
-          updateDownloadButton();
-          setStatus("PDF opened in a new tab. On iPhone, use Share to save it.", "#16a34a");
-          setTimeout(() => {
-            if (currentCv._id) {
-              loadCV(currentCv._id);
-            }
-          }, 1500);
-          enableBtn("downloadPdfBtn", "Download CV (PDF)");
-          return;
-        }
-
         let res;
 
         try {
@@ -1704,16 +1707,7 @@ $("suggestSkillsBtn")?.addEventListener("click", async () => {
 
         try {
           const blob = await res.blob();
-          const url = URL.createObjectURL(blob);
-
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = "CV.pdf";
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
-
-          setTimeout(() => URL.revokeObjectURL(url), 5000);
+          openBlobDownload(blob, "CV.pdf", iosDownloadWindow);
 
           decrementRemainingCount("downloadsRemaining");
           updateDownloadCounter();
@@ -1769,23 +1763,6 @@ $("suggestSkillsBtn")?.addEventListener("click", async () => {
 
         disableBtn("downloadCoverPdf", "Processing...");
 
-        const directUrl =
-          `${window.API_BASE}/api/pdf/cover-letter/${currentCv._id}?token=${encodeURIComponent(token)}&inline=1`;
-
-        if (isIOSDevice()) {
-          openDirectDownload(directUrl, iosDownloadWindow);
-          decrementRemainingCount("coverLettersRemaining");
-          updateCoverLetterCounter();
-          setStatus("PDF opened in a new tab. On iPhone, use Share to save it.", "#16a34a");
-          setTimeout(() => {
-            if (currentCv._id) {
-              loadCV(currentCv._id);
-            }
-          }, 1500);
-          enableBtn("downloadCoverPdf", "Download Cover Letter");
-          return;
-        }
-
         let res;
 
         try {
@@ -1824,16 +1801,7 @@ $("suggestSkillsBtn")?.addEventListener("click", async () => {
 
         try {
           const blob = await res.blob();
-          const url = URL.createObjectURL(blob);
-
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = "Cover_Letter.pdf";
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
-
-          setTimeout(() => URL.revokeObjectURL(url), 5000);
+          openBlobDownload(blob, "Cover_Letter.pdf", iosDownloadWindow);
 
           decrementRemainingCount("coverLettersRemaining");
           updateCoverLetterCounter();
@@ -1913,18 +1881,6 @@ document.getElementById("downloadPdfBtn")
 
   disableBtn("downloadPdfBtn", "Processing…");
 
-  const isIOS =
-    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-
-  // ✅ iPhone: skip fetch entirely
-  if (isIOS) {
-    window.location.href =
-      `${window.API_BASE}/api/pdf/cv/${currentCv._id}?token=${token}`;
-    enableBtn("downloadPdfBtn", "Download CV (PDF)");
-    return;
-  }
-
   let res;
 
   try {
@@ -1991,18 +1947,6 @@ document.getElementById("downloadCoverPdf")
   }
 
   disableBtn("downloadCoverPdf", "Processing…");
-
-  const isIOS =
-    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-
-  // ✅ iPhone: skip fetch entirely
-  if (isIOS) {
-    window.location.href =
-      `${window.API_BASE}/api/pdf/cover-letter/${currentCv._id}?token=${token}`;
-    enableBtn("downloadCoverPdf", "Download Cover Letter");
-    return;
-  }
 
   let res;
 

@@ -58,7 +58,27 @@ const aiLimiter = rateLimit({
 });
 
 app.use(helmet({
-  contentSecurityPolicy: false,
+  contentSecurityPolicy: {
+    useDefaults: true,
+    directives: {
+      "default-src": ["'self'"],
+      "script-src": [
+        "'self'",
+        "'unsafe-inline'",
+        "https://cdnjs.cloudflare.com",
+        "https://unpkg.com"
+      ],
+      "style-src": ["'self'", "'unsafe-inline'"],
+      "img-src": ["'self'", "data:", "blob:"],
+      "font-src": ["'self'", "data:"],
+      "connect-src": ["'self'"],
+      "object-src": ["'none'"],
+      "base-uri": ["'self'"],
+      "form-action": ["'self'", "https://www.payfast.co.za", "https://sandbox.payfast.co.za"],
+      "frame-ancestors": ["'none'"],
+      "upgrade-insecure-requests": []
+    }
+  },
   crossOriginEmbedderPolicy: false
 }));
 app.use(compression());
@@ -90,8 +110,8 @@ app.use(
   bodyParser.raw({ type: "application/x-www-form-urlencoded" })
 );
 
-app.use(express.json({ limit: "50mb" }));
-app.use(express.urlencoded({ extended: false, limit: "50mb" }));
+app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || "10mb" }));
+app.use(express.urlencoded({ extended: false, limit: process.env.URLENCODED_BODY_LIMIT || "2mb" }));
 
 app.use(express.static(path.join(__dirname, "public")));
 

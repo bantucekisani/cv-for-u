@@ -129,7 +129,22 @@ router.post("/notify", async (req, res) => {
       update.$set = { isPaid: true };
     }
 
-    await CV.findByIdAndUpdate(parsed.cvId, update);
+    const updatedCv = await CV.findOneAndUpdate(
+      {
+        _id: parsed.cvId,
+        userId: parsed.userId
+      },
+      update
+    );
+
+    if (!updatedCv) {
+      console.error("Payment CV ownership mismatch:", {
+        paymentId,
+        cvId: parsed.cvId,
+        userId: parsed.userId
+      });
+      return res.status(400).send("Payment target mismatch");
+    }
 
     return res.status(200).send("OK");
   } catch (err) {

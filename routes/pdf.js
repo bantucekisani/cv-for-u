@@ -8,7 +8,6 @@ const path = require("path");
 
 const CV = require("../models/Cv");
 const auth = require("../middleware/auth");
-const authViaQuery = require("../middleware/authViaQuery");
 const renderCvHTML = require("../utils/renderTemplate");
 const {
   blankPdfCacheEntry,
@@ -179,15 +178,19 @@ async function renderPdf(html, css) {
 }
 
 function pdfAuth(req, res, next) {
-  if (req.query.token) {
-    return authViaQuery(req, res, next);
-  }
-
   return auth(req, res, next);
 }
 
 function wantsInlinePdf(req) {
   return String(req.query.inline || "") === "1";
+}
+
+function escapeHtml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
 function setPdfHeaders(res, filename, pdf, { inline = false } = {}) {
@@ -347,10 +350,10 @@ async function buildCoverLetterPdf(cv) {
   const html = `
       <div class="cover-letter">
         <div class="address">
-          ${lines.slice(0, 7).map(line => `<p>${line}</p>`).join("")}
+          ${lines.slice(0, 7).map(line => `<p>${escapeHtml(line)}</p>`).join("")}
         </div>
         <div class="body">
-          ${lines.slice(7).map(line => `<p>${line}</p>`).join("")}
+          ${lines.slice(7).map(line => `<p>${escapeHtml(line)}</p>`).join("")}
         </div>
       </div>
     `;
